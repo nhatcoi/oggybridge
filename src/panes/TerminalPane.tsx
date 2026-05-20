@@ -1,0 +1,102 @@
+import { useEffect, useRef } from "react";
+import { Terminal } from "@xterm/xterm";
+import { FitAddon } from "@xterm/addon-fit";
+import { WebglAddon } from "@xterm/addon-webgl";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import "@xterm/xterm/css/xterm.css";
+
+interface Props {
+  id: string;
+  cmd?: string;
+}
+
+export default function TerminalPane({ id, cmd }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const term = new Terminal({
+      cursorBlink: true,
+      fontFamily: '"JetBrains Mono", "Cascadia Code", Menlo, monospace',
+      fontSize: 14,
+      lineHeight: 1.2,
+      theme: {
+        background: "#0d1117",
+        foreground: "#e6edf3",
+        cursor: "#58a6ff",
+        selectionBackground: "#264f78",
+        black:         "#484f58",
+        red:           "#ff7b72",
+        green:         "#3fb950",
+        yellow:        "#d29922",
+        blue:          "#58a6ff",
+        magenta:       "#bc8cff",
+        cyan:          "#39c5cf",
+        white:         "#b1bac4",
+        brightBlack:   "#6e7681",
+        brightRed:     "#ffa198",
+        brightGreen:   "#56d364",
+        brightYellow:  "#e3b341",
+        brightBlue:    "#79c0ff",
+        brightMagenta: "#d2a8ff",
+        brightCyan:    "#56d4dd",
+        brightWhite:   "#f0f6fc",
+      },
+    });
+
+    const fit = new FitAddon();
+    term.loadAddon(fit);
+    term.open(el);
+    fit.fit();
+
+    try {
+      term.loadAddon(new WebglAddon());
+    } catch {
+      // WebGL not available, fall back to canvas
+    }
+
+    if (!("__TAURI_INTERNALS__" in window)) {
+      term.writeln("\r\n\x1b[33mNot running inside Tauri — IPC unavailable\x1b[0m");
+      return;
+    }
+
+    invoke("create_pty", {
+      id,
+      cols: term.cols,
+      rows: term.rows,
+      cmd: cmd ?? null,
+    }).catch((e) => term.writeln(`\r\n\x1b[31mFailed to create pty: ${e}\x1b[0m`));
+
+    const unlistenPromise = listen<string>(`pty-data-${id}`, (e) => {
+      term.write(e.payload);
+    });
+
+    const onDataDisposable = term.onData((data) => {
+      invoke("write_pty", { id, data }).catch(() => {});
+    });
+
+    const ro = new ResizeObserver(() => {
+      fit.fit();
+      invoke("resize_pty", { id, cols: term.cols, rows: term.rows }).catch(() => {});
+    });
+    ro.observe(el);
+
+    return () => {
+      unlistenPromise.then((f) => f());
+      onDataDisposable.dispose();
+      ro.disconnect();
+      invoke("kill_pty", { id }).catch(() => {});
+      term.dispose();
+    };
+  }, [id, cmd]);
+
+  return (
+    <div
+      ref={containerRef}
+      style={{ width: "100%", height: "100%", padding: "4px" }}
+    />
+  );
+}

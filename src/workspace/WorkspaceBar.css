@@ -1,0 +1,77 @@
+.workspace-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  background: #1c2128;
+  border-bottom: 1px solid #30363d;
+  flex-shrink: 0;
+  height: 34px;
+}
+
+.ws-icon {
+  font-size: 13px;
+}
+
+.ws-path {
+  font-size: 12px;
+  color: #c9d1d9;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.ws-hint {
+  font-size: 12px;
+  color: #6e7681;
+  flex: 1;
+}
+
+.ws-btn {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ws-btn-open {
+  background: #238636;
+  border-color: #2ea043;
+  color: #fff;
+}
+
+.ws-btn-open:hover:not(:disabled) {
+  background: #2ea043;
+}
+
+.ws-btn-open:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ws-btn-close {
+  background: none;
+  border-color: #30363d;
+  color: #8b949e;
+  padding: 2px 6px;
+}
+
+.ws-btn-close:hover {
+  border-color: #f85149;
+  color: #f85149;
+}
+
+.ws-error {
+  font-size: 11px;
+  color: #f85149;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

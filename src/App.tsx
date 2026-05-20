@@ -84,7 +84,7 @@ export default function App() {
           onOpen={setWorkspace}
           onClose={() => setWorkspace(null)}
         />
-        <PaneGrid panes={panes} maxPerRow={maxPerRow} onClose={removePane} />
+        <PaneGrid panes={panes} maxPerRow={maxPerRow} workspace={workspace} onClose={removePane} />
       </main>
     </div>
   );

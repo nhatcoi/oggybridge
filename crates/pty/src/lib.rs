@@ -11,7 +11,7 @@ pub struct PtySession {
 unsafe impl Sync for PtySession {}
 
 impl PtySession {
-    pub fn spawn<F>(cols: u16, rows: u16, cmd: &str, on_data: F) -> anyhow::Result<Self>
+    pub fn spawn<F>(cols: u16, rows: u16, cmd: &str, cwd: Option<&std::path::Path>, on_data: F) -> anyhow::Result<Self>
     where
         F: Fn(String) + Send + 'static,
     {
@@ -26,6 +26,9 @@ impl PtySession {
         let mut builder = CommandBuilder::new(cmd);
         builder.env("TERM", "xterm-256color");
         builder.env("COLORTERM", "truecolor");
+        if let Some(dir) = cwd {
+            builder.cwd(dir);
+        }
 
         let _child = pair.slave.spawn_command(builder)?;
         drop(pair.slave);

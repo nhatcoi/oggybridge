@@ -9,9 +9,10 @@ import "@xterm/xterm/css/xterm.css";
 interface Props {
   id: string;
   cmd?: string;
+  cwd?: string;
 }
 
-export default function TerminalPane({ id, cmd }: Props) {
+export default function TerminalPane({ id, cmd, cwd }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,6 +69,7 @@ export default function TerminalPane({ id, cmd }: Props) {
       cols: term.cols,
       rows: term.rows,
       cmd: cmd ?? null,
+      cwd: cwd ?? null,
     }).catch((e) => term.writeln(`\r\n\x1b[31mFailed to create pty: ${e}\x1b[0m`));
 
     const unlistenPromise = listen<string>(`pty-data-${id}`, (e) => {
@@ -91,7 +93,7 @@ export default function TerminalPane({ id, cmd }: Props) {
       invoke("kill_pty", { id }).catch(() => {});
       term.dispose();
     };
-  }, [id, cmd]);
+  }, [id, cmd, cwd]);
 
   return (
     <div

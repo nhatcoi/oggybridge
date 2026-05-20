@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { AgentPane, AGENTS } from "../App";
+import { AgentPane, AGENTS, WorkspaceInfo } from "../App";
 import TerminalPane from "./TerminalPane";
 import "./PaneGrid.css";
 
 interface Props {
   panes: AgentPane[];
   maxPerRow: number;
+  workspace: WorkspaceInfo | null;
   onClose: (id: string) => void;
 }
 
@@ -17,7 +18,7 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
-export default function PaneGrid({ panes, maxPerRow, onClose }: Props) {
+export default function PaneGrid({ panes, maxPerRow, workspace, onClose }: Props) {
   const [focused, setFocused] = useState<string | null>(null);
   const [ratios, setRatios] = useState<Record<string, number>>({});
   const containerRef = useRef<HTMLDivElement>(null);
@@ -70,7 +71,11 @@ export default function PaneGrid({ panes, maxPerRow, onClose }: Props) {
                     </button>
                   </div>
                   <div className="pane-terminal">
-                    <TerminalPane id={pane.id} cmd={agent?.cmd || undefined} />
+                    <TerminalPane
+                      id={pane.id}
+                      cmd={agent?.cmd || undefined}
+                      cwd={workspace?.path}
+                    />
                   </div>
                 </div>
 

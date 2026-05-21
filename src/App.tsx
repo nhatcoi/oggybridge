@@ -15,6 +15,15 @@ export interface WorkspaceInfo {
   path: string;
   tasksMd: string;
   agentStateMd: string;
+  hookPort: number;
+}
+
+export interface HookEvent {
+  agentId: string;
+  event: string;
+  tool: string | null;
+  files: string[];
+  ts: number;
 }
 
 interface FileChangedPayload {
@@ -39,6 +48,7 @@ export default function App() {
   ]);
   const [workspace, setWorkspace] = useState<WorkspaceInfo | null>(null);
   const [maxPerRow, setMaxPerRow] = useState(2);
+  const [hookEvents, setHookEvents] = useState<HookEvent[]>([]);
 
   // Listen for file-change events from the Rust watcher
   useEffect(() => {
@@ -51,6 +61,15 @@ export default function App() {
         if (kind === "agent_state") return { ...prev, agentStateMd: content };
         return prev;
       });
+    });
+    return () => { unlisten.then((f) => f()); };
+  }, []);
+
+  // Listen for hook events from the bridge
+  useEffect(() => {
+    if (!("__TAURI_INTERNALS__" in window)) return;
+    const unlisten = listen<HookEvent>("hook-event", (e) => {
+      setHookEvents((prev) => [e.payload, ...prev].slice(0, 50));
     });
     return () => { unlisten.then((f) => f()); };
   }, []);
@@ -77,6 +96,7 @@ export default function App() {
         workspace={workspace}
         maxPerRow={maxPerRow}
         onMaxPerRowChange={setMaxPerRow}
+        hookEvents={hookEvents}
       />
       <main className="main-area">
         <WorkspaceBar

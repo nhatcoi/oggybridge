@@ -139,6 +139,54 @@
   text-align: center;
 }
 
+.activity-section {
+  flex-shrink: 0;
+}
+
+.activity-feed {
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.activity-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+  background: #0d1117;
+  border: 1px solid #21262d;
+}
+
+.activity-time {
+  color: #484f58;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.activity-event {
+  color: #8b949e;
+}
+
+.activity-tool {
+  color: #58a6ff;
+  font-weight: 600;
+}
+
+.activity-file {
+  color: #3fb950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
 .sidebar-footer {
   margin-top: auto;
   padding: 10px 16px;

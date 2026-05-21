@@ -1,4 +1,4 @@
-import { AgentPane, WorkspaceInfo } from "../App";
+import { AgentPane, HookEvent, WorkspaceInfo } from "../App";
 import TasksView from "./TasksView";
 import "./Sidebar.css";
 
@@ -15,6 +15,17 @@ interface Props {
   maxPerRow: number;
   onAddPane: (agentId: string) => void;
   onMaxPerRowChange: (n: number) => void;
+  hookEvents: HookEvent[];
+}
+
+function fmtTime(ts: number): string {
+  const d = new Date(ts * 1000);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function shortPath(p: string): string {
+  const parts = p.replace(/\\/g, "/").split("/");
+  return parts.length > 2 ? `…/${parts.slice(-2).join("/")}` : p;
 }
 
 const AGENT_ICONS: Record<string, string> = {
@@ -25,7 +36,7 @@ const AGENT_ICONS: Record<string, string> = {
   "shell":       "💻",
 };
 
-export default function Sidebar({ agents, panes, workspace, maxPerRow, onAddPane, onMaxPerRowChange }: Props) {
+export default function Sidebar({ agents, panes, workspace, maxPerRow, onAddPane, onMaxPerRowChange, hookEvents }: Props) {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -87,8 +98,28 @@ export default function Sidebar({ agents, panes, workspace, maxPerRow, onAddPane
         </div>
       </section>
 
+      {hookEvents.length > 0 && (
+        <section className="sidebar-section activity-section">
+          <h3 className="sidebar-section-title">Activity</h3>
+          <div className="activity-feed">
+            {hookEvents.slice(0, 15).map((ev, i) => (
+              <div key={i} className="activity-row">
+                <span className="activity-time">{fmtTime(ev.ts)}</span>
+                <span className="activity-event">{ev.event.replace(/_/g, " ")}</span>
+                {ev.tool && <span className="activity-tool">{ev.tool}</span>}
+                {ev.files[0] && (
+                  <span className="activity-file" title={ev.files[0]}>
+                    {shortPath(ev.files[0])}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="sidebar-footer">
-        <span className="version-label">v0.1.0 · M3</span>
+        <span className="version-label">v0.1.0 · M4</span>
       </div>
     </aside>
   );

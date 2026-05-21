@@ -1,3 +1,4 @@
+use agenthost_hook_bridge::{HookBridge, HookEvent};
 use notify::{RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{new_debouncer, DebounceEventResult, Debouncer};
 use serde::Serialize;
@@ -7,17 +8,24 @@ use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
-// ── state ───────────────────────────────────────────────────────────────────
+// ── state ────────────────────────────────────────────────────────────────────
 
 pub struct WorkspaceHandle {
+    #[allow(dead_code)]
     pub path: PathBuf,
-    // held alive to keep the watcher running
     _debouncer: Debouncer<RecommendedWatcher>,
+    _bridge_abort: tokio::task::AbortHandle,
+}
+
+impl Drop for WorkspaceHandle {
+    fn drop(&mut self) {
+        self._bridge_abort.abort();
+    }
 }
 
 pub struct WorkspaceStore(pub Mutex<Option<WorkspaceHandle>>);
 
-// ── serialisable types returned to frontend ─────────────────────────────────
+// ── serialisable types returned to frontend ──────────────────────────────────
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -25,6 +33,7 @@ pub struct WorkspaceInfo {
     pub path: String,
     pub tasks_md: String,
     pub agent_state_md: String,
+    pub hook_port: u16,
 }
 
 #[derive(Serialize, Clone)]
@@ -36,11 +45,25 @@ pub struct FileChangedPayload {
 
 // ── public API ───────────────────────────────────────────────────────────────
 
-pub fn open(workspace: &Path, app: AppHandle) -> anyhow::Result<(WorkspaceHandle, WorkspaceInfo)> {
-    let info = init_agents_dir(workspace)?;
-    let agents_dir = workspace.join(".agents");
+pub async fn open(
+    workspace: &Path,
+    app: AppHandle,
+) -> anyhow::Result<(WorkspaceHandle, WorkspaceInfo)> {
+    let mut info = init_agents_dir(workspace)?;
 
-    let app_clone = app.clone();
+    // Start hook bridge; forward events to frontend via Tauri event
+    let app_bridge = app.clone();
+    let bridge = HookBridge::start(move |event: HookEvent| {
+        let _ = app_bridge.emit("hook-event", &event);
+    })
+    .await?;
+
+    write_hook_scripts(workspace, bridge.port, &bridge.token)?;
+    info.hook_port = bridge.port;
+
+    // File watcher for .agents/
+    let agents_dir = workspace.join(".agents");
+    let app_watcher = app.clone();
     let mut debouncer = new_debouncer(
         Duration::from_millis(250),
         move |res: DebounceEventResult| {
@@ -51,7 +74,7 @@ pub fn open(workspace: &Path, app: AppHandle) -> anyhow::Result<(WorkspaceHandle
             for ev in events {
                 let content = fs::read_to_string(&ev.path).unwrap_or_default();
                 let kind = classify(&ev.path);
-                let _ = app_clone.emit(
+                let _ = app_watcher.emit(
                     "workspace-file-changed",
                     FileChangedPayload {
                         path: ev.path.to_string_lossy().to_string(),
@@ -62,7 +85,6 @@ pub fn open(workspace: &Path, app: AppHandle) -> anyhow::Result<(WorkspaceHandle
             }
         },
     )?;
-
     debouncer
         .watcher()
         .watch(&agents_dir, RecursiveMode::Recursive)?;
@@ -70,12 +92,72 @@ pub fn open(workspace: &Path, app: AppHandle) -> anyhow::Result<(WorkspaceHandle
     let handle = WorkspaceHandle {
         path: workspace.to_owned(),
         _debouncer: debouncer,
+        _bridge_abort: bridge.abort,
     };
 
     Ok((handle, info))
 }
 
-// ── private helpers ──────────────────────────────────────────────────────────
+// ── hook scripts ─────────────────────────────────────────────────────────────
+
+fn write_hook_scripts(workspace: &Path, port: u16, token: &str) -> anyhow::Result<()> {
+    let hooks_dir = workspace.join(".agents/hooks");
+    fs::create_dir_all(&hooks_dir)?;
+
+    for name in &["pre_tool_use.sh", "post_tool_use.sh"] {
+        let script = format!(
+            "#!/bin/bash\n\
+             # OggyBridge hook — pipes stdin to the local hook bridge.\n\
+             curl -s -o /dev/null --max-time 5 \\\n\
+               -X POST \"http://127.0.0.1:{port}/hooks/claude-code\" \\\n\
+               -H \"Authorization: Bearer {token}\" \\\n\
+               -H \"Content-Type: application/json\" \\\n\
+               --data-binary @-\n\
+             exit 0\n"
+        );
+        let path = hooks_dir.join(name);
+        fs::write(&path, script)?;
+        make_executable(&path)?;
+    }
+
+    write_claude_settings(workspace, &hooks_dir)?;
+    Ok(())
+}
+
+#[cfg(unix)]
+fn make_executable(path: &Path) -> anyhow::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    let mut perms = fs::metadata(path)?.permissions();
+    perms.set_mode(0o755);
+    fs::set_permissions(path, perms)?;
+    Ok(())
+}
+
+fn write_claude_settings(workspace: &Path, hooks_dir: &Path) -> anyhow::Result<()> {
+    let dot_claude = workspace.join(".claude");
+    fs::create_dir_all(&dot_claude)?;
+
+    let settings_path = dot_claude.join("settings.json");
+    let mut settings: serde_json::Value = if settings_path.exists() {
+        let raw = fs::read_to_string(&settings_path)?;
+        serde_json::from_str(&raw).unwrap_or(serde_json::json!({}))
+    } else {
+        serde_json::json!({})
+    };
+
+    let pre = hooks_dir.join("pre_tool_use.sh");
+    let post = hooks_dir.join("post_tool_use.sh");
+
+    settings["hooks"] = serde_json::json!({
+        "PreToolUse": [{"hooks": [{"type": "command", "command": pre.to_string_lossy()}]}],
+        "PostToolUse": [{"hooks": [{"type": "command", "command": post.to_string_lossy()}]}]
+    });
+
+    fs::write(settings_path, serde_json::to_string_pretty(&settings)?)?;
+    Ok(())
+}
+
+// ── workspace init ────────────────────────────────────────────────────────────
 
 fn init_agents_dir(workspace: &Path) -> anyhow::Result<WorkspaceInfo> {
     let dir = workspace.join(".agents");
@@ -99,14 +181,11 @@ fn init_agents_dir(workspace: &Path) -> anyhow::Result<WorkspaceInfo> {
         fs::write(dir.join("config.toml"), CONFIG_TEMPLATE)?;
     }
 
-    // Inject AGENTS.md into workspace root so every agent that reads it
-    // understands the coordination protocol
     let agents_md = workspace.join("AGENTS.md");
     if !agents_md.exists() {
         fs::write(&agents_md, AGENTS_MD_TEMPLATE)?;
     }
 
-    // Ensure .agents/ is gitignored in the workspace
     let gitignore = workspace.join(".gitignore");
     let existing = if gitignore.exists() {
         fs::read_to_string(&gitignore)?
@@ -114,7 +193,11 @@ fn init_agents_dir(workspace: &Path) -> anyhow::Result<WorkspaceInfo> {
         String::new()
     };
     if !existing.contains(".agents/") {
-        let sep = if existing.is_empty() || existing.ends_with('\n') { "" } else { "\n" };
+        let sep = if existing.is_empty() || existing.ends_with('\n') {
+            ""
+        } else {
+            "\n"
+        };
         fs::write(&gitignore, format!("{}{}.agents/\n", existing, sep))?;
     }
 
@@ -125,6 +208,7 @@ fn init_agents_dir(workspace: &Path) -> anyhow::Result<WorkspaceInfo> {
         path: workspace.to_string_lossy().to_string(),
         tasks_md,
         agent_state_md,
+        hook_port: 0, // filled in after bridge starts
     })
 }
 
@@ -138,7 +222,7 @@ fn classify(path: &Path) -> String {
     .to_string()
 }
 
-// ── templates ────────────────────────────────────────────────────────────────
+// ── templates ─────────────────────────────────────────────────────────────────
 
 const TASKS_TEMPLATE: &str = r#"# Tasks
 

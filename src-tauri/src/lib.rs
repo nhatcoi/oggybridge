@@ -63,13 +63,13 @@ fn kill_pty(id: String, store: State<'_, PtyStore>) -> Result<(), String> {
 // ── Workspace commands ───────────────────────────────────────────────────────
 
 #[tauri::command]
-fn open_workspace(
+async fn open_workspace(
     path: String,
     app: AppHandle,
     store: State<'_, WorkspaceStore>,
 ) -> Result<WorkspaceInfo, String> {
     let p = std::path::Path::new(&path);
-    let (handle, info) = workspace::open(p, app).map_err(|e| e.to_string())?;
+    let (handle, info) = workspace::open(p, app).await.map_err(|e| e.to_string())?;
     *store.0.lock().unwrap() = Some(handle);
     Ok(info)
 }

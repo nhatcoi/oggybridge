@@ -241,11 +241,11 @@ const AGENT_STATE_TEMPLATE: &str = r#"# Agent State
 | claude-code | idle | — | — |
 | codex | idle | — | — |
 | copilot | idle | — | — |
-| aider | idle | — | — |
+| antigravity | idle | — | — |
 "#;
 
 const CONFIG_TEMPLATE: &str = r#"[agents]
-enabled = ["claude-code", "codex", "copilot", "aider"]
+enabled = ["claude-code", "codex", "copilot", "antigravity"]
 
 [coordinator]
 hook_port = 0

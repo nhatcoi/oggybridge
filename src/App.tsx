@@ -36,7 +36,7 @@ const AGENTS = [
   { id: "claude-code", label: "Claude Code", cmd: "claude" },
   { id: "codex",       label: "Codex",       cmd: "codex" },
   { id: "copilot",     label: "Copilot CLI", cmd: "gh" },
-  { id: "aider",       label: "Aider",       cmd: "aider" },
+  { id: "antigravity", label: "Antigravity CLI", cmd: "agy" },
   { id: "shell",       label: "Shell",       cmd: "" },
 ] as const;
 

@@ -6,7 +6,7 @@
 
 ## What this project is
 
-**OggyBridge** is a cross-platform desktop app (Linux + macOS first) that hosts multiple AI coding agents — Claude Code, Codex, GitHub Copilot CLI, Aider — side-by-side in one window. Its key differentiator is a **shared coordination layer** so the agents (and the user) can see who is working on what, on which files, with what tasks claimed.
+**OggyBridge** is a cross-platform desktop app (Linux + macOS first) that hosts multiple AI coding agents — Claude Code, Codex, GitHub Copilot CLI, Antigravity CLI — side-by-side in one window. Its key differentiator is a **shared coordination layer** so the agents (and the user) can see who is working on what, on which files, with what tasks claimed.
 
 Internal package identifier is `agenthost`; product/window name is `OggyBridge`. Do not rename `agenthost` in `Cargo.toml` / `tauri.conf.json` without a coordinated pass.
 
@@ -127,7 +127,7 @@ Output flows the other way as Tauri events: `pty-data-{id}` payload is a UTF-8 s
 
 - Don't add Windows-specific code paths. Out of scope for v1 (see PLAN.md → Out of Scope).
 - Don't modify the user's global `~/.claude/settings.json` or `~/.codex/` config. All hook installs must be workspace-local.
-- Don't embed GUI agents (Cursor, Antigravity) inside the window — Linux Wayland has no XEmbed equivalent; deferred to post-MVP.
+- Don't embed GUI agents such as Cursor inside the window — Linux Wayland has no XEmbed equivalent; deferred to post-MVP.
 - Don't roll a custom MCP protocol implementation. Use the `rmcp` crate when M4 starts.
 - Don't introduce `electron`, `node-pty`, or any Node-side spawning. PTY work belongs in Rust.
 

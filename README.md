@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <em>Run Claude Code, Codex, GitHub Copilot CLI, Aider, and any shell — side by side — with shared workspace awareness.</em>
+  <em>Run Claude Code, Codex, GitHub Copilot CLI, Antigravity CLI, and any shell — side by side — with shared workspace awareness.</em>
 </p>
 
 <p align="center">
@@ -36,7 +36,7 @@ You use multiple AI coding agents. So do we. The problem?
 
 - **Claude Code** is refactoring your auth module
 - **Codex** is scaffolding a new API endpoint
-- **Aider** is fixing a bug in the same file Claude is editing
+- **Antigravity CLI** is fixing a bug in the same file Claude is editing
 - You're switching between 4 terminal tabs trying to keep track
 
 **OggyBridge** puts them all in one window with a shared sidebar, so you always know *who* is doing *what* on *which files*.
@@ -58,7 +58,7 @@ Click an agent in the sidebar → a new terminal pane spawns with that agent's C
 | Claude Code | `claude` | Anthropic's AI coding assistant |
 | Codex | `codex` | OpenAI's code generation CLI |
 | Copilot CLI | `gh copilot` | GitHub's AI pair programmer |
-| Aider | `aider` | Git-aware AI coding in your terminal |
+| Antigravity CLI | `agy` | Antigravity's coding agent in your terminal |
 | Shell | `$SHELL` | Plain terminal for anything else |
 
 ### 📂 Workspace Sidebar
@@ -147,7 +147,7 @@ agenthost
 
 1. **Open OggyBridge** — a Shell pane opens by default
 2. **Click an agent** in the sidebar (e.g., "Claude Code") — a new pane spawns with `claude` running
-3. **Add more agents** — click Codex, Aider, another Shell, whatever you need
+3. **Add more agents** — click Codex, Antigravity CLI, another Shell, whatever you need
 4. **Work in parallel** — each agent has its own full terminal; type, scroll, copy/paste independently
 5. **Monitor from the sidebar** — see all active panes at a glance, close any with one click
 
@@ -158,7 +158,7 @@ agenthost
 ```
 ┌─────────────────────────── OggyBridge Window ─────────────────────┐
 │  ┌─ Sidebar ──┐  ┌─ Agent Pane Grid ─────────────────────────────┐│
-│  │ Agents     │  │ ┌─Claude Code─┐ ┌─Codex─────┐ ┌─Aider────────┐││
+│  │ Agents     │  │ ┌─Claude Code─┐ ┌─Codex─────┐ ┌─Antigravity──┐││
 │  │ Open Panes │  │ │ xterm.js    │ │ xterm.js  │ │ xterm.js     │││
 │  │            │  │ │ (pty)       │ │ (pty)     │ │ (pty)        │││
 │  │            │  │ └─────────────┘ └───────────┘ └──────────────┘││
@@ -169,7 +169,7 @@ agenthost
          ▼                                  ▼
 ┌────────────────── Rust Backend ────────────────────────────────────┐
 │   PTY Manager (portable-pty)  ←→  Agent CLI processes             │
-│   One PTY session per pane    ←→  claude / codex / gh / aider     │
+│   One PTY session per pane    ←→  claude / codex / gh / agy       │
 └───────────────────────────────────────────────────────────────────-┘
 ```
 
@@ -223,7 +223,7 @@ const AGENTS = [
   { id: "claude-code", label: "Claude Code", cmd: "claude" },
   { id: "codex",       label: "Codex",       cmd: "codex" },
   { id: "copilot",     label: "Copilot CLI", cmd: "gh" },
-  { id: "aider",       label: "Aider",       cmd: "aider" },
+  { id: "antigravity", label: "Antigravity CLI", cmd: "agy" },
   { id: "shell",       label: "Shell",       cmd: "" },  // uses $SHELL
   // Add your own:
   { id: "cursor",      label: "Cursor CLI",  cmd: "cursor" },

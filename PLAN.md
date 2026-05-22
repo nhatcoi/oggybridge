@@ -1,6 +1,6 @@
 # Plan: OggyBridge — Multi-Agent Coding Host Desktop App
 
-> **Status (as of M1 commit):** Skeleton done — Tauri 2 window, multi-pane xterm.js grid, `portable-pty` backend, agent registry sidebar (Claude Code / Codex / Copilot / Aider / Shell). Compiles clean on Linux. Coordination layer (M3–M6) not started.
+> **Status (as of M1 commit):** Skeleton done — Tauri 2 window, multi-pane xterm.js grid, `portable-pty` backend, agent registry sidebar (Claude Code / Codex / Copilot / Antigravity CLI / Shell). Compiles clean on Linux. Coordination layer (M3–M6) not started.
 >
 > Internal package identifier remains `agenthost` in `Cargo.toml` / `tauri.conf.json` until a rename pass is done. Window title and product branding: **OggyBridge**.
 
@@ -22,13 +22,13 @@
 
 ## Context
 
-Modern AI coding workflows increasingly involve multiple agents in parallel — Claude Code for refactoring, Codex for scaffolding, Copilot CLI for snippets, Aider for surgical edits. Today users juggle these in separate terminal tabs with no shared awareness, leading to redundant work, conflicting edits, and lost context.
+Modern AI coding workflows increasingly involve multiple agents in parallel — Claude Code for refactoring, Codex for scaffolding, Copilot CLI for snippets, Antigravity CLI for surgical edits. Today users juggle these in separate terminal tabs with no shared awareness, leading to redundant work, conflicting edits, and lost context.
 
 This project builds a single desktop window that **hosts multiple AI coding agents side-by-side** and provides a **shared overview layer** — a coordinator the user (and the agents) can consult to see who is doing what, on which files, and what tasks remain.
 
 Primary targets: **Linux (X11/Wayland) and macOS**. Windows is non-goal for v1.
 
-MVP agent scope: Claude Code, OpenAI Codex CLI, GitHub Copilot CLI, Aider (all CLI-based, all support pty hosting).
+MVP agent scope: Claude Code, OpenAI Codex CLI, GitHub Copilot CLI, Antigravity CLI (all CLI-based, all support pty hosting).
 
 ---
 
@@ -37,7 +37,7 @@ MVP agent scope: Claude Code, OpenAI Codex CLI, GitHub Copilot CLI, Aider (all C
 ```
 ┌─────────────────────────── Tauri Window ──────────────────────────┐
 │  ┌─ Sidebar ──┐  ┌─ Agent Pane Grid ─────────────────────────────┐│
-│  │ Overview   │  │ ┌─Claude Code─┐ ┌─Codex─────┐ ┌─Aider────────┐││
+│  │ Overview   │  │ ┌─Claude Code─┐ ┌─Codex─────┐ ┌─Antigravity──┐││
 │  │ Tasks      │  │ │ xterm.js    │ │ xterm.js  │ │ xterm.js     │││
 │  │ Files map  │  │ │ (pty)       │ │ (pty)     │ │ (pty)        │││
 │  │ Agents     │  │ └─────────────┘ └───────────┘ └──────────────┘││
@@ -61,7 +61,7 @@ MVP agent scope: Claude Code, OpenAI Codex CLI, GitHub Copilot CLI, Aider (all C
 └─────────────────────────────────────────────────────────────────────┘
          │
          ▼ spawn
-   ┌──── Agent CLI processes (claude, codex, gh copilot, aider) ────┐
+   ┌──── Agent CLI processes (claude, codex, gh copilot, agy) ──────┐
    │ Each in its own pty. Sees workspace root + .agents/ folder.    │
    │ Optionally configured with hook scripts pointing at Hook Bridge.│
    └────────────────────────────────────────────────────────────────┘
@@ -113,7 +113,7 @@ A struct per supported agent describing how to launch and (optionally) instrumen
 ```rust
 // crates/coordinator/src/agent.rs (conceptual)
 pub struct AgentAdapter {
-    pub id: &'static str,             // "claude-code", "codex", "copilot", "aider"
+    pub id: &'static str,             // "claude-code", "codex", "copilot", "antigravity"
     pub display_name: &'static str,
     pub launch: AgentLaunch,          // command + args + env
     pub hook_install: Option<HookInstall>, // for agents that support hooks
@@ -248,8 +248,8 @@ Normalized events feed the same in-memory state the MCP tools mutate.
 
 ### M7 (post-MVP) — Per-agent adapters & richer integration
 - Codex event integration.
-- Aider's `--message` mode for headless task dispatch.
-- Optional GUI-agent launchers (open Cursor/Antigravity externally, sync via file layer only).
+- Antigravity CLI task dispatch.
+- Optional GUI-agent launchers (open Cursor externally, sync via file layer only).
 
 ---
 
@@ -285,7 +285,7 @@ Normalized events feed the same in-memory state the MCP tools mutate.
 End-to-end checks after each milestone:
 
 1. **M1**: Open app, see a working bash prompt. Resize window, terminal reflows. `ls`, `vim`, `htop` work.
-2. **M2**: Launch 3 agent panes side-by-side (Claude Code, Codex, Aider). Each accepts input, shows output, survives backgrounding.
+2. **M2**: Launch 3 agent panes side-by-side (Claude Code, Codex, Antigravity CLI). Each accepts input, shows output, survives backgrounding.
 3. **M3**: Edit `TASKS.md` in external editor → Overview sidebar updates within 500ms. App-side edit writes back to disk.
 4. **M4**: Run Claude Code in a pane → trigger a tool call → confirm hook event arrives at bridge and appears in ActivityFeed. Attach MCP inspector to coordinator socket → list tools.
 5. **M5**: From Claude Code agent, call `team_state` MCP tool → returns parsed state. Two agents claim same task → second gets conflict error. Both edit same file within 30s → Overview shows red warning.
@@ -304,8 +304,8 @@ Automated tests:
 1. **macOS pty permissions** — portable-pty handles this; verify codesigning entitlements include `com.apple.security.device.audio-input` is NOT needed (it isn't), but `--deep` signing of bundled binaries is.
 2. **Hook install is invasive** — modifying user's `~/.claude/settings.json` is risky. Mitigation: write workspace-local `.claude/settings.json` only, never touch user-global config.
 3. **MCP server discoverability** — agents need to know the socket path. Mitigation: write `.mcp.json` in workspace root per Claude Code's documented config; for Codex, write equivalent.
-4. **GUI agents (Cursor/Antigravity) cannot be hosted in-window on Linux** under Wayland (no XEmbed equivalent). Defer to post-MVP; for v1 they're "external" and sync only via file layer.
-5. **Aider lacks hooks** — fallback to pty scraping for activity signal, or none at all (file watcher catches edits).
+4. **GUI agents such as Cursor cannot be hosted in-window on Linux** under Wayland (no XEmbed equivalent). Defer to post-MVP; for v1 they're "external" and sync only via file layer.
+5. **Some CLIs lack hooks** — fallback to pty scraping for activity signal, or none at all (file watcher catches edits).
 
 ---
 
@@ -314,5 +314,5 @@ Automated tests:
 - Windows support.
 - Cloud sync between workspaces / machines.
 - Built-in LLM (we host *agents*, not models).
-- Embedding GUI agents (Cursor, Antigravity) inside the window.
+- Embedding GUI agents such as Cursor inside the window.
 - Multi-user / collaboration features.

@@ -1,3 +1,3 @@
 [workspace]
-members = ["src-tauri", "crates/pty", "crates/hook_bridge"]
+members = ["src-tauri", "crates/pty", "crates/hook_bridge", "crates/mcp_server"]
 resolver = "2"

@@ -1,4 +1,5 @@
 use agenthost_hook_bridge::{HookBridge, HookEvent};
+use agenthost_mcp_server::McpServer;
 use notify::{RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{new_debouncer, DebounceEventResult, Debouncer};
 use serde::Serialize;
@@ -15,11 +16,13 @@ pub struct WorkspaceHandle {
     pub path: PathBuf,
     _debouncer: Debouncer<RecommendedWatcher>,
     _bridge_abort: tokio::task::AbortHandle,
+    _mcp_abort: tokio::task::AbortHandle,
 }
 
 impl Drop for WorkspaceHandle {
     fn drop(&mut self) {
         self._bridge_abort.abort();
+        self._mcp_abort.abort();
     }
 }
 
@@ -34,6 +37,7 @@ pub struct WorkspaceInfo {
     pub tasks_md: String,
     pub agent_state_md: String,
     pub hook_port: u16,
+    pub mcp_port: u16,
 }
 
 #[derive(Serialize, Clone)]
@@ -60,6 +64,11 @@ pub async fn open(
 
     write_hook_scripts(workspace, bridge.port, &bridge.token)?;
     info.hook_port = bridge.port;
+
+    // Start MCP coordinator server
+    let mcp = McpServer::start(workspace.to_path_buf()).await?;
+    write_mcp_json(workspace, mcp.port)?;
+    info.mcp_port = mcp.port;
 
     // File watcher for .agents/
     let agents_dir = workspace.join(".agents");
@@ -93,6 +102,7 @@ pub async fn open(
         path: workspace.to_owned(),
         _debouncer: debouncer,
         _bridge_abort: bridge.abort,
+        _mcp_abort: mcp.abort,
     };
 
     Ok((handle, info))
@@ -157,6 +167,22 @@ fn write_claude_settings(workspace: &Path, hooks_dir: &Path) -> anyhow::Result<(
     Ok(())
 }
 
+fn write_mcp_json(workspace: &Path, port: u16) -> anyhow::Result<()> {
+    let config = serde_json::json!({
+        "mcpServers": {
+            "oggybridge": {
+                "url": format!("http://127.0.0.1:{port}/mcp"),
+                "type": "streamableHttp"
+            }
+        }
+    });
+    fs::write(
+        workspace.join(".mcp.json"),
+        serde_json::to_string_pretty(&config)?,
+    )?;
+    Ok(())
+}
+
 // ── workspace init ────────────────────────────────────────────────────────────
 
 fn init_agents_dir(workspace: &Path) -> anyhow::Result<WorkspaceInfo> {
@@ -209,6 +235,7 @@ fn init_agents_dir(workspace: &Path) -> anyhow::Result<WorkspaceInfo> {
         tasks_md,
         agent_state_md,
         hook_port: 0, // filled in after bridge starts
+        mcp_port: 0,  // filled in after MCP server starts
     })
 }
 

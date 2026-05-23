@@ -16,6 +16,7 @@ export interface WorkspaceInfo {
   tasksMd: string;
   agentStateMd: string;
   hookPort: number;
+  mcpPort: number;
 }
 
 export interface HookEvent {

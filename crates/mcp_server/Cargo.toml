@@ -1,0 +1,13 @@
+[package]
+name = "agenthost-mcp-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rmcp = { version = "1.5", features = ["server", "macros", "transport-streamable-http-server", "transport-streamable-http-server-session"] }
+axum = "0.7"
+tokio = { version = "1", features = ["net"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+schemars = "0.8"
+anyhow = "1"

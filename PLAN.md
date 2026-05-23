@@ -1,6 +1,6 @@
 # Plan: OggyBridge — Multi-Agent Coding Host Desktop App
 
-> **Status (as of M1 commit):** Skeleton done — Tauri 2 window, multi-pane xterm.js grid, `portable-pty` backend, agent registry sidebar (Claude Code / Codex / Copilot / Antigravity CLI / Shell). Compiles clean on Linux. Coordination layer (M3–M6) not started.
+> **Status (as of M4a commit):** PTY backend, React terminal grid, workspace directory config, automatic Claude hook installer, and HTTP hook bridge (M4a) are done. Next up: MCP coordinator (M4b).
 >
 > Internal package identifier remains `agenthost` in `Cargo.toml` / `tauri.conf.json` until a rename pass is done. Window title and product branding: **OggyBridge**.
 
@@ -13,7 +13,8 @@
 | M1 | Tauri scaffold + single pty pane | ✅ Done |
 | M2 | Agent registry + multi-pane grid + drag-resize | ✅ Done |
 | M3 | Workspace picker + `.agents/` init + markdown watcher | ✅ Done |
-| M4 | Hook bridge (axum) + MCP coordinator (rmcp) | ⬜ Not started |
+| M4a | Hook bridge (axum) | ✅ Done |
+| M4b | MCP coordinator (rmcp) | ⬜ Not started |
 | M5 | 6 MCP tools + conflict detection + file heatmap | ⬜ Not started |
 | M6 | Settings, theme, bundle `.deb` / `.AppImage` / `.dmg` | ⬜ Not started |
 | M7 | Post-MVP agent-specific integrations | ⬜ Not started |

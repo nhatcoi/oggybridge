@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "/home/nhatcoi/agenthost/ws-test/.agents/hooks/post_tool_use.sh",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "/home/nhatcoi/agenthost/ws-test/.agents/hooks/pre_tool_use.sh",
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -81,17 +81,21 @@ Dark theme optimized for long coding sessions. GitHub-inspired color palette. Je
 
 ### 🐧 Linux
 
+Download from **[Releases v0.1.3](https://github.com/nhatcoi/oggybridge/releases/tag/v0.1.3)** or install directly:
+
 ```bash
 curl -LO https://github.com/nhatcoi/oggybridge/releases/download/v0.1.3/OggyBridge_0.1.3_amd64.deb
 sudo dpkg -i OggyBridge_0.1.3_amd64.deb
+oggybridge
 ```
 
-Other formats also available on the [Releases](https://github.com/nhatcoi/oggybridge/releases) page: `.AppImage` (all distros), `.rpm` (Fedora/RHEL).
+Other formats on the [Releases](https://github.com/nhatcoi/oggybridge/releases) page: `.AppImage` (all distros), `.rpm` (Fedora/RHEL).
 
 ### 🍎 macOS
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nhatcoi/oggybridge/main/install.sh | bash
+oggybridge
 ```
 
 Builds from source — requires Node.js ≥ 18. Script installs Rust automatically if missing.

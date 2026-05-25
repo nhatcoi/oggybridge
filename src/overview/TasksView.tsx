@@ -1,3 +1,4 @@
+import { CheckSquare, Square } from "./Icons";
 import "./TasksView.css";
 
 interface Props {
@@ -39,7 +40,9 @@ export default function TasksView({ tasksMd }: Props) {
       </div>
       {tasks.map((t) => (
         <div key={t.id} className={`task-item${t.done ? " done" : ""}`}>
-          <span className="task-check">{t.done ? "✓" : "○"}</span>
+          <span className="task-check">
+            {t.done ? <CheckSquare size={13} /> : <Square size={13} />}
+          </span>
           <span className="task-label">{t.label}</span>
         </div>
       ))}

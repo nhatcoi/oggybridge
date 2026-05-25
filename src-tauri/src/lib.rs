@@ -4,7 +4,7 @@ use agenthost_pty::PtySession;
 use std::collections::HashMap;
 use std::fs;
 use std::sync::Mutex;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 use workspace::{WorkspaceInfo, WorkspaceStore};
 
 // ── PTY state ────────────────────────────────────────────────────────────────
@@ -85,6 +85,27 @@ fn read_workspace_file(path: String) -> Result<String, String> {
     fs::read_to_string(&path).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn read_settings(app: AppHandle) -> Result<String, String> {
+    let path_resolver = app.path();
+    let config_dir = path_resolver.app_config_dir().map_err(|e| e.to_string())?;
+    let settings_path = config_dir.join("settings.json");
+    if settings_path.exists() {
+        fs::read_to_string(settings_path).map_err(|e| e.to_string())
+    } else {
+        Ok("{}".to_string())
+    }
+}
+
+#[tauri::command]
+fn write_settings(app: AppHandle, settings: String) -> Result<(), String> {
+    let path_resolver = app.path();
+    let config_dir = path_resolver.app_config_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&config_dir).map_err(|e| e.to_string())?;
+    let settings_path = config_dir.join("settings.json");
+    fs::write(settings_path, settings).map_err(|e| e.to_string())
+}
+
 // ── app bootstrap ────────────────────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -103,6 +124,8 @@ pub fn run() {
             open_workspace,
             close_workspace,
             read_workspace_file,
+            read_settings,
+            write_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

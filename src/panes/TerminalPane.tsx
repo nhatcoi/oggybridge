@@ -19,10 +19,14 @@ export default function TerminalPane({ id, cmd, cwd }: Props) {
     const el = containerRef.current;
     if (!el) return;
 
+    const rootStyle = getComputedStyle(document.documentElement);
+    const fontSize = parseInt(rootStyle.getPropertyValue("--terminal-font-size")) || 14;
+    const fontFamily = rootStyle.getPropertyValue("--terminal-font-family") || '"JetBrains Mono", "Cascadia Code", Menlo, monospace';
+
     const term = new Terminal({
       cursorBlink: true,
-      fontFamily: '"JetBrains Mono", "Cascadia Code", Menlo, monospace',
-      fontSize: 14,
+      fontFamily,
+      fontSize,
       lineHeight: 1.2,
       theme: {
         background: "#0d1117",

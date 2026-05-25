@@ -1,36 +1,43 @@
 .tasks-view {
-  padding: 0 0 4px;
+  padding: 0 0 6px;
 }
 
 .tasks-summary {
-  font-size: 10px;
-  color: #6e7681;
-  padding: 2px 16px 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 2px 16px 8px;
+  font-family: var(--font-mono);
 }
 
 .task-item {
   display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 3px 16px;
-  font-size: 12px;
-  color: #c9d1d9;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  font-size: 13px;
+  color: var(--text-primary);
   line-height: 1.4;
+  transition: background 0.1s ease;
+}
+
+.task-item:hover {
+  background: var(--bg-hover);
 }
 
 .task-item.done {
-  color: #6e7681;
+  color: var(--text-muted);
 }
 
 .task-check {
-  font-size: 10px;
-  color: #3fb950;
+  font-size: 12px;
+  color: var(--accent-shell);
   flex-shrink: 0;
-  margin-top: 1px;
+  cursor: pointer;
+  user-select: none;
 }
 
 .task-item.done .task-check {
-  color: #6e7681;
+  color: var(--text-muted);
 }
 
 .task-label {
@@ -46,6 +53,6 @@
 
 .tasks-empty {
   font-size: 12px;
-  color: #484f58;
+  color: var(--text-muted);
   padding: 4px 16px;
 }

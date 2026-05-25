@@ -1,8 +1,22 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
+import { open as openDirDialog } from "@tauri-apps/plugin-dialog";
+import {
+  FolderOpen,
+  X,
+  Settings,
+  Bot,
+  Zap,
+  Github,
+  Compass,
+  Terminal,
+} from "./overview/Icons";
 import PaneGrid from "./panes/PaneGrid";
 import Sidebar from "./overview/Sidebar";
 import WorkspaceBar from "./workspace/WorkspaceBar";
+import SettingsView from "./overview/SettingsView";
+import CommandPalette, { Command } from "./overview/CommandPalette";
 import "./App.css";
 
 export interface AgentPane {
@@ -27,20 +41,33 @@ export interface HookEvent {
   ts: number;
 }
 
-export interface FileHeatEntry {
-  path: string;
-  agents: string[];   // unique agents that touched this file
-  latestTs: number;
-  hasConflict: boolean; // 2+ agents within CONFLICT_WINDOW_SECS
-}
-
-const CONFLICT_WINDOW_SECS = 60;
-
 interface FileChangedPayload {
   kind: string;
   content: string;
   path: string;
 }
+
+export interface AppSettings {
+  theme: "dark" | "light" | "system";
+  accentColor: "blue" | "green" | "orange" | "purple" | "magenta";
+  fontSize: number;
+  fontFamily: "jetbrains" | "fira" | "system";
+  startupLastWs: boolean;
+  telemetry: boolean;
+  enabledAgents: string[];
+  maxPerRow: number;
+}
+
+const DEFAULT_SETTINGS: AppSettings = {
+  theme: "dark",
+  accentColor: "blue",
+  fontSize: 14,
+  fontFamily: "jetbrains",
+  startupLastWs: true,
+  telemetry: false,
+  enabledAgents: ["claude-code", "codex", "copilot", "antigravity", "shell"],
+  maxPerRow: 2,
+};
 
 const AGENTS = [
   { id: "claude-code", label: "Claude Code", cmd: "claude" },
@@ -57,32 +84,75 @@ export default function App() {
     { id: "pane-0", agentId: "shell", label: "Shell" },
   ]);
   const [workspace, setWorkspace] = useState<WorkspaceInfo | null>(null);
-  const [maxPerRow, setMaxPerRow] = useState(2);
   const [hookEvents, setHookEvents] = useState<HookEvent[]>([]);
+  const [recentWorkspaces, setRecentWorkspaces] = useState<string[]>([]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
 
-  const fileHeatmap = useMemo<FileHeatEntry[]>(() => {
-    const now = Date.now() / 1000;
-    const map = new Map<string, { agentId: string; ts: number }[]>();
-    for (const ev of hookEvents) {
-      for (const file of ev.files) {
-        if (!map.has(file)) map.set(file, []);
-        map.get(file)!.push({ agentId: ev.agentId, ts: ev.ts });
+  const applySettings = useCallback((cfg: AppSettings) => {
+    // 1. Accent color
+    const colorMap = {
+      blue: "#58a6ff",
+      green: "#3fb950",
+      orange: "#ff7b72",
+      purple: "#bc8cff",
+      magenta: "#ff5e97",
+    };
+    const colorVal = colorMap[cfg.accentColor] || colorMap.blue;
+    document.documentElement.style.setProperty("--accent-primary", colorVal);
+
+    // 2. Theme
+    document.documentElement.setAttribute("data-theme", cfg.theme);
+    
+    // 3. Font Size & Family
+    document.documentElement.style.setProperty("--terminal-font-size", `${cfg.fontSize}px`);
+    const fontFamilies = {
+      jetbrains: '"JetBrains Mono", "Fira Code", monospace',
+      fira: '"Fira Code", monospace',
+      system: "monospace",
+    };
+    document.documentElement.style.setProperty("--terminal-font-family", fontFamilies[cfg.fontFamily]);
+  }, []);
+
+  const saveSettings = useCallback((newSettings: AppSettings) => {
+    setSettings(newSettings);
+    applySettings(newSettings);
+    if (!("__TAURI_INTERNALS__" in window)) return;
+    invoke("write_settings", { settings: JSON.stringify(newSettings) })
+      .catch((e) => console.error("Failed to write settings:", e));
+  }, [applySettings]);
+
+  // Load settings on mount
+  useEffect(() => {
+    applySettings(DEFAULT_SETTINGS);
+
+    if (!("__TAURI_INTERNALS__" in window)) return;
+    invoke<string>("read_settings")
+      .then((raw) => {
+        try {
+          const parsed = JSON.parse(raw);
+          const loadedSettings = { ...DEFAULT_SETTINGS, ...parsed };
+          setSettings(loadedSettings);
+          applySettings(loadedSettings);
+        } catch {
+          // Ignore
+        }
+      })
+      .catch((e) => console.error("Failed to read settings:", e));
+  }, [applySettings]);
+
+  // Load recent workspaces from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("recentWorkspaces");
+      if (stored) {
+        setRecentWorkspaces(JSON.parse(stored));
       }
+    } catch {
+      // Ignore
     }
-    const entries: FileHeatEntry[] = [];
-    for (const [path, touches] of map) {
-      const recent = touches.filter((t) => now - t.ts < CONFLICT_WINDOW_SECS);
-      const recentAgents = new Set(recent.map((t) => t.agentId));
-      const allAgents = [...new Set(touches.map((t) => t.agentId))];
-      const latestTs = Math.max(...touches.map((t) => t.ts));
-      entries.push({ path, agents: allAgents, latestTs, hasConflict: recentAgents.size > 1 });
-    }
-    entries.sort((a, b) => {
-      if (a.hasConflict !== b.hasConflict) return a.hasConflict ? -1 : 1;
-      return b.latestTs - a.latestTs;
-    });
-    return entries.slice(0, 20);
-  }, [hookEvents]);
+  }, []);
 
   // Listen for file-change events from the Rust watcher
   useEffect(() => {
@@ -96,7 +166,9 @@ export default function App() {
         return prev;
       });
     });
-    return () => { unlisten.then((f) => f()); };
+    return () => {
+      unlisten.then((f) => f());
+    };
   }, []);
 
   // Listen for hook events from the bridge
@@ -105,7 +177,9 @@ export default function App() {
     const unlisten = listen<HookEvent>("hook-event", (e) => {
       setHookEvents((prev) => [e.payload, ...prev].slice(0, 50));
     });
-    return () => { unlisten.then((f) => f()); };
+    return () => {
+      unlisten.then((f) => f());
+    };
   }, []);
 
   const addPane = useCallback((agentId: string) => {
@@ -121,26 +195,166 @@ export default function App() {
     setPanes((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
+  const handleOpenWorkspace = useCallback(async (path: string) => {
+    try {
+      const info = await invoke<WorkspaceInfo>("open_workspace", { path });
+      setWorkspace(info);
+      
+      // Update recent workspaces
+      setRecentWorkspaces((prev) => {
+        const next = [path, ...prev.filter((p) => p !== path)].slice(0, 5);
+        localStorage.setItem("recentWorkspaces", JSON.stringify(next));
+        return next;
+      });
+    } catch (e) {
+      alert(`Failed to open workspace: ${e}`);
+    }
+  }, []);
+
+  const handleSelectWorkspaceDialog = useCallback(async () => {
+    if (!("__TAURI_INTERNALS__" in window)) return;
+    const selected = await openDirDialog({ directory: true, multiple: false });
+    if (selected && typeof selected === "string") {
+      handleOpenWorkspace(selected);
+    }
+  }, [handleOpenWorkspace]);
+
+  const handleCloseWorkspace = useCallback(async () => {
+    await invoke("close_workspace").catch(() => {});
+    setWorkspace(null);
+  }, []);
+
+  // Bind hotkeys (⌘K/Ctrl+K, ⌘O/Ctrl+O, ⌘W/Ctrl+W)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+      if (isCmdOrCtrl && e.key === "k") {
+        e.preventDefault();
+        setPaletteOpen((prev) => !prev);
+      } else if (isCmdOrCtrl && e.key === "o") {
+        e.preventDefault();
+        handleSelectWorkspaceDialog();
+      } else if (isCmdOrCtrl && e.key === "w" && panes.length > 0) {
+        e.preventDefault();
+        // Remove the last pane
+        removePane(panes[panes.length - 1].id);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [panes, handleSelectWorkspaceDialog, removePane]);
+
+  const commands: Command[] = [
+    {
+      id: "open-workspace",
+      label: "Open Workspace",
+      category: "Workspace",
+      icon: <FolderOpen size={16} />,
+      shortcut: "⌘O",
+      action: handleSelectWorkspaceDialog,
+    },
+    {
+      id: "close-workspace",
+      label: "Close Current Workspace",
+      category: "Workspace",
+      icon: <X size={16} />,
+      action: handleCloseWorkspace,
+    },
+    {
+      id: "toggle-settings",
+      label: "Toggle Settings",
+      category: "General",
+      icon: <Settings size={16} />,
+      action: () => setSettingsOpen((prev) => !prev),
+    },
+    {
+      id: "launch-claude",
+      label: "Launch Claude Code",
+      category: "Agents",
+      icon: <Bot size={16} />,
+      action: () => addPane("claude-code"),
+    },
+    {
+      id: "launch-codex",
+      label: "Launch Codex CLI",
+      category: "Agents",
+      icon: <Zap size={16} />,
+      action: () => addPane("codex"),
+    },
+    {
+      id: "launch-copilot",
+      label: "Launch GitHub Copilot CLI",
+      category: "Agents",
+      icon: <Github size={16} />,
+      action: () => addPane("copilot"),
+    },
+    {
+      id: "launch-antigravity",
+      label: "Launch Antigravity CLI",
+      category: "Agents",
+      icon: <Compass size={16} />,
+      action: () => addPane("antigravity"),
+    },
+    {
+      id: "launch-shell",
+      label: "Launch System Shell",
+      category: "Agents",
+      icon: <Terminal size={16} />,
+      action: () => addPane("shell"),
+    },
+  ];
+
+  // Filter agents based on settings enabled status
+  const visibleAgents = AGENTS.filter((a) => settings.enabledAgents.includes(a.id));
+
   return (
     <div className="app-root">
       <Sidebar
-        agents={AGENTS}
+        agents={visibleAgents}
         onAddPane={addPane}
         panes={panes}
         workspace={workspace}
-        maxPerRow={maxPerRow}
-        onMaxPerRowChange={setMaxPerRow}
         hookEvents={hookEvents}
-        fileHeatmap={fileHeatmap}
+        recentWorkspaces={recentWorkspaces}
+        onSelectWorkspace={handleOpenWorkspace}
+        onToggleSettings={() => setSettingsOpen(true)}
+        onToggleCommandPalette={() => setPaletteOpen(true)}
       />
       <main className="main-area">
         <WorkspaceBar
           workspace={workspace}
-          onOpen={setWorkspace}
-          onClose={() => setWorkspace(null)}
+          onOpen={(info) => {
+            setWorkspace(info);
+            // Append workspace to recent
+            setRecentWorkspaces((prev) => {
+              const next = [info.path, ...prev.filter((p) => p !== info.path)].slice(0, 5);
+              localStorage.setItem("recentWorkspaces", JSON.stringify(next));
+              return next;
+            });
+          }}
+          onClose={handleCloseWorkspace}
         />
-        <PaneGrid panes={panes} maxPerRow={maxPerRow} workspace={workspace} onClose={removePane} />
+        <PaneGrid
+          panes={panes}
+          maxPerRow={settings.maxPerRow}
+          workspace={workspace}
+          onClose={removePane}
+          onAddPane={addPane}
+        />
       </main>
+
+      <SettingsView
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        settings={settings}
+        onSaveSettings={saveSettings}
+      />
+
+      <CommandPalette
+        isOpen={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        commands={commands}
+      />
     </div>
   );
 }

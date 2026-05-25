@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
+import { FolderOpen, X } from "../overview/Icons";
 import { WorkspaceInfo } from "../App";
 import "./WorkspaceBar.css";
 
@@ -38,12 +39,12 @@ export default function WorkspaceBar({ workspace, onOpen, onClose }: Props) {
     <div className="workspace-bar">
       {workspace ? (
         <>
-          <span className="ws-icon">📁</span>
+          <FolderOpen size={15} className="ws-icon" />
           <span className="ws-path" title={workspace.path}>
             {shortPath(workspace.path)}
           </span>
           <button className="ws-btn ws-btn-close" onClick={handleClose} title="Close workspace">
-            ✕
+            <X size={12} style={{ display: "block" }} />
           </button>
         </>
       ) : (

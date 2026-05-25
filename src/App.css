@@ -1,9 +1,68 @@
+:root {
+  --bg-primary: #080b10;
+  --bg-secondary: #0c1017;
+  --bg-tertiary: #121824;
+  --bg-hover: #1b2230;
+  --border-color: #1e2633;
+  --border-focus: #3c4e6b;
+  --text-primary: #f0f6fc;
+  --text-secondary: #8b949e;
+  --text-muted: #586069;
+  
+  /* Agent Colors */
+  --accent-claude: #ff7b72;
+  --accent-codex: #58a6ff;
+  --accent-copilot: #bc8cff;
+  --accent-antigravity: #ff5e97;
+  --accent-shell: #3fb950;
+  
+  --accent-primary: var(--accent-codex);
+  --terminal-font-size: 14px;
+  --terminal-font-family: "JetBrains Mono", "Fira Code", monospace;
+
+  --font-sans: "Outfit", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", Menlo, Monaco, Consolas, monospace;
+}
+
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f6f8fa;
+  --bg-tertiary: #eaeef2;
+  --bg-hover: #eaeef2;
+  --border-color: #d0d7de;
+  --border-focus: #0969da;
+  --text-primary: #24292f;
+  --text-secondary: #57606a;
+  --text-muted: #8c959f;
+  
+  --accent-claude: #cf222e;
+  --accent-codex: #0969da;
+  --accent-copilot: #8250df;
+  --accent-antigravity: #bf3989;
+  --accent-shell: #1a7f37;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
 .app-root {
   display: flex;
   width: 100%;
   height: 100%;
-  background: #0d1117;
-  color: #e6edf3;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .main-area {
@@ -12,4 +71,54 @@
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+  background: var(--bg-primary);
+}
+
+/* Custom Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-focus);
+}
+
+/* Pulse animation for running state */
+@keyframes status-pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 5px rgba(63, 185, 80, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(63, 185, 80, 0);
+  }
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  background-color: var(--accent-shell);
+  border-radius: 50%;
+  display: inline-block;
+  animation: status-pulse 2s infinite;
+}
+
+.pulse-dot.idle {
+  background-color: var(--text-muted);
+  animation: none;
 }

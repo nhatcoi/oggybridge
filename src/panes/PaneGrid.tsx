@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { Columns, X, Folder } from "../overview/Icons";
 import { AgentPane, AGENTS, WorkspaceInfo } from "../App";
 import TerminalPane from "./TerminalPane";
+import AgentLauncher from "./AgentLauncher";
 import "./PaneGrid.css";
 
 interface Props {
@@ -8,9 +10,10 @@ interface Props {
   maxPerRow: number;
   workspace: WorkspaceInfo | null;
   onClose: (id: string) => void;
+  onAddPane: (agentId: string) => void;
 }
 
-const DIVIDER_PX = 5;
+const DIVIDER_PX = 6;
 
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -18,7 +21,15 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
-export default function PaneGrid({ panes, maxPerRow, workspace, onClose }: Props) {
+function getAgentClass(agentId: string): string {
+  if (agentId.includes("claude")) return "claude";
+  if (agentId.includes("codex")) return "codex";
+  if (agentId.includes("copilot")) return "copilot";
+  if (agentId.includes("antigravity")) return "antigravity";
+  return "shell";
+}
+
+export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPane }: Props) {
   const [focused, setFocused] = useState<string | null>(null);
   const [ratios, setRatios] = useState<Record<string, number>>({});
   const containerRef = useRef<HTMLDivElement>(null);
@@ -30,12 +41,15 @@ export default function PaneGrid({ panes, maxPerRow, workspace, onClose }: Props
       for (const p of panes) next[p.id] = prev[p.id] ?? 1;
       return next;
     });
+    if (panes.length > 0 && (!focused || !panes.some((p) => p.id === focused))) {
+      setFocused(panes[panes.length - 1].id);
+    }
   }, [panes]);
 
   if (panes.length === 0) {
     return (
-      <div className="pane-empty">
-        No agents open — add one from the sidebar.
+      <div className="pane-empty-container">
+        <AgentLauncher onLaunch={onAddPane} />
       </div>
     );
   }
@@ -51,24 +65,49 @@ export default function PaneGrid({ panes, maxPerRow, workspace, onClose }: Props
             const isFocused = focused === pane.id;
             const ratio = ratios[pane.id] ?? 1;
             const nextPane = row[colIdx + 1];
+            const agentClass = getAgentClass(pane.agentId);
 
             return (
               <div key={pane.id} style={{ display: "contents" }}>
                 <div
-                  className={`pane-wrapper${isFocused ? " focused" : ""}`}
+                  className={`pane-wrapper ${agentClass}${isFocused ? " focused" : ""}`}
                   style={{ flex: ratio }}
                   onMouseDown={() => setFocused(pane.id)}
                 >
                   <div className="pane-titlebar">
-                    <span className="pane-title">{pane.label}</span>
-                    <button
-                      className="pane-close"
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onClick={(e) => { e.stopPropagation(); onClose(pane.id); }}
-                      title="Close pane"
-                    >
-                      ✕
-                    </button>
+                    <div className="pane-titlebar-left">
+                      <span className="pane-title">{pane.label}</span>
+                      <span className="pane-status-badge">
+                        <span className="pulse-dot"></span>
+                        Running
+                      </span>
+                      {workspace && (
+                        <span className="pane-path" title={workspace.path}>
+                          <Folder size={11} style={{ marginRight: 4, display: "inline-block", verticalAlign: "middle" }} />
+                          {shortPath(workspace.path)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="pane-titlebar-right">
+                      <button
+                        className="pane-action-btn"
+                        onClick={() => onAddPane(pane.agentId)}
+                        title="Split horizontally"
+                      >
+                        <Columns size={12} />
+                      </button>
+                      <button
+                        className="pane-action-btn close"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onClose(pane.id);
+                        }}
+                        title="Close pane"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
                   </div>
                   <div className="pane-terminal">
                     <TerminalPane
@@ -136,4 +175,9 @@ function Divider({ leftId, rightId, ratios, containerRef, setRatios }: DividerPr
   };
 
   return <div className="pane-divider" onPointerDown={onPointerDown} />;
+}
+
+function shortPath(p: string): string {
+  const parts = p.replace(/\\/g, "/").split("/");
+  return parts.length > 2 ? `…/${parts.slice(-2).join("/")}` : p;
 }

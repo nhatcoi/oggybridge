@@ -4,8 +4,9 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-  padding: 2px;
-  gap: 4px;
+  padding: 8px;
+  gap: 8px;
+  background: var(--bg-primary);
 }
 
 .pane-row {
@@ -19,52 +20,113 @@
 .pane-wrapper {
   display: flex;
   flex-direction: column;
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
   overflow: hidden;
   min-width: 120px;
   min-height: 0;
-  margin: 0 2px;
-  transition: border-color 0.1s;
+  margin: 0 4px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.pane-wrapper.focused {
-  border-color: #58a6ff;
+/* Accent colored focused states */
+.pane-wrapper.focused.claude {
+  border-color: var(--accent-claude);
+  box-shadow: 0 0 12px rgba(255, 123, 114, 0.15);
+}
+.pane-wrapper.focused.codex {
+  border-color: var(--accent-codex);
+  box-shadow: 0 0 12px rgba(88, 166, 255, 0.15);
+}
+.pane-wrapper.focused.copilot {
+  border-color: var(--accent-copilot);
+  box-shadow: 0 0 12px rgba(188, 140, 255, 0.15);
+}
+.pane-wrapper.focused.antigravity {
+  border-color: var(--accent-antigravity);
+  box-shadow: 0 0 12px rgba(255, 94, 151, 0.15);
+}
+.pane-wrapper.focused.shell {
+  border-color: var(--accent-shell);
+  box-shadow: 0 0 12px rgba(63, 185, 80, 0.15);
 }
 
 .pane-titlebar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 10px;
-  background: #1c2128;
-  border-bottom: 1px solid #30363d;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
   user-select: none;
 }
 
-.pane-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #8b949e;
-  letter-spacing: 0.3px;
+.pane-titlebar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
-.pane-close {
+.pane-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.pane-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.pane-path {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.pane-titlebar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pane-action-btn {
   background: none;
   border: none;
-  color: #6e7681;
+  color: var(--text-secondary);
   cursor: pointer;
-  font-size: 11px;
-  padding: 2px 4px;
-  border-radius: 3px;
-  line-height: 1;
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s ease;
 }
 
-.pane-close:hover {
-  background: #30363d;
-  color: #e6edf3;
+.pane-action-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.pane-action-btn.close:hover {
+  background: rgba(255, 94, 151, 0.15);
+  color: var(--accent-antigravity);
 }
 
 .pane-terminal {
@@ -74,28 +136,35 @@
 }
 
 .pane-divider {
-  width: 5px;
+  width: 6px;
   flex-shrink: 0;
   cursor: col-resize;
   background: transparent;
-  border-left: 1px solid #21262d;
-  border-right: 1px solid #21262d;
-  transition: background 0.1s;
   align-self: stretch;
+  position: relative;
+  z-index: 10;
 }
 
-.pane-divider:hover,
-.pane-divider:active {
-  background: #58a6ff44;
-  border-color: #58a6ff;
+.pane-divider::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 2px;
+  background: transparent;
+  transition: background 0.15s ease;
 }
 
-.pane-empty {
+.pane-divider:hover::after,
+.pane-divider:active::after {
+  background: var(--border-focus);
+}
+
+.pane-empty-container {
   display: flex;
-  align-items: center;
-  justify-content: center;
   width: 100%;
   height: 100%;
-  color: #6e7681;
-  font-size: 14px;
+  background: var(--bg-primary);
+  overflow: hidden;
 }

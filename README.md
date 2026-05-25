@@ -81,15 +81,15 @@ Dark theme optimized for long coding sessions. GitHub-inspired color palette. Je
 
 ### 🐧 Linux
 
-Download from **[Releases v0.1.4](https://github.com/nhatcoi/oggybridge/releases/tag/v0.1.4)** or install directly:
+Download from **[Releases v0.1.5](https://github.com/nhatcoi/oggybridge/releases/tag/v0.1.5)** or install directly:
 
 ```bash
-curl -LO https://github.com/nhatcoi/oggybridge/releases/download/v0.1.4/OggyBridge_0.1.4_amd64.deb
-sudo dpkg -i OggyBridge_0.1.4_amd64.deb
+curl -LO https://github.com/nhatcoi/oggybridge/releases/download/v0.1.5/OggyBridge_0.1.5_amd64.deb
+sudo dpkg -i OggyBridge_0.1.5_amd64.deb
 oggybridge
 ```
 
-Other formats on the [Releases](https://github.com/nhatcoi/oggybridge/releases) page: `.AppImage` (all distros), `.rpm` (Fedora/RHEL).
+Other formats on the [Releases](https://github.com/nhatcoi/oggybridge/releases) page: `.AppImage` (all distros), `.rpm` (Fedora/RHEL), `.dmg` (macOS).
 
 ### 🍎 macOS
 
@@ -99,6 +99,41 @@ oggybridge
 ```
 
 Builds from source — requires Node.js ≥ 18. Script installs Rust automatically if missing.
+
+#### Build `.dmg` from source
+
+Install prerequisites:
+
+```bash
+# Node.js 18+ and npm
+node --version
+npm --version
+
+# Rust toolchain
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
+```
+
+Build the macOS installer:
+
+```bash
+git clone https://github.com/nhatcoi/oggybridge.git
+cd oggybridge
+npm install
+npm run tauri -- build --bundles dmg
+```
+
+The generated `.dmg` will be in:
+
+```text
+src-tauri/target/release/bundle/dmg/
+```
+
+For local development without creating a `.dmg`:
+
+```bash
+npm run tauri -- dev
+```
 
 ---
 

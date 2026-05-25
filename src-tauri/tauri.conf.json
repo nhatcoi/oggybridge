@@ -1,6 +1,6 @@
 {
   "productName": "OggyBridge",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "identifier": "com.oggybridge.desktop",
   "build": {
     "frontendDist": "../dist",
@@ -41,7 +41,9 @@
       "icons/icon-32.png",
       "icons/icon-128.png",
       "icons/icon-256.png",
-      "icons/icon-512.png"
+      "icons/icon-512.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
     ]
   }
 }

@@ -79,57 +79,22 @@ Dark theme optimized for long coding sessions. GitHub-inspired color palette. Je
 
 ## 📦 Installation
 
-### 🚀 Method 1: Pre-built Releases (Recommended)
+### 🐧 Linux
 
-The easiest way to get OggyBridge is to download the compiled binaries directly from our [Releases](https://github.com/nhatcoi/oggybridge/releases) page. **No compilation or programming tools (Rust/Node) are needed!**
+```bash
+curl -LO https://github.com/nhatcoi/oggybridge/releases/download/v0.1.3/OggyBridge_0.1.3_amd64.deb
+sudo dpkg -i OggyBridge_0.1.3_amd64.deb
+```
 
-*   **Linux (Ubuntu/Debian):** Download the `.deb` package and install it:
-    ```bash
-    sudo dpkg -i OggyBridge_*_amd64.deb
-    ```
-*   **Linux (Other Distros):** Download the `.AppImage`, make it executable, and run it:
-    ```bash
-    chmod +x OggyBridge_*_amd64.AppImage
-    ./OggyBridge_*_amd64.AppImage
-    ```
-*   **macOS:** macOS build coming in v0.2.0. Use Method 2 (build from source) in the meantime.
+Other formats also available on the [Releases](https://github.com/nhatcoi/oggybridge/releases) page: `.AppImage` (all distros), `.rpm` (Fedora/RHEL).
 
----
-
-### 🛠️ Method 2: Build & Install from Source (For Developers)
-
-If you want to build the application from source on your local machine (supports **both Linux and macOS**), run the quick installer script:
+### 🍎 macOS
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nhatcoi/oggybridge/main/install.sh | bash
 ```
 
-The script handles everything: installs Rust (if missing), system dependencies, clones the source code, builds the binary, and installs it.
-
-**Prerequisites:** Node.js ≥ 18 · `sudo` access (Linux, for system deps + dpkg)
-
-<details>
-<summary><strong>What the installer does</strong></summary>
-
-1. Checks/installs Rust via rustup.
-2. Installs Tauri CLI (`cargo install tauri-cli`).
-3. **Linux (apt):** Installs WebKitGTK 4.1, GTK3, and related libs (requires `sudo`).
-4. Clones source to `~/.local/share/oggybridge-src`.
-5. Runs `npm install` + `cargo tauri build`.
-6. **Linux:** Installs `.deb` via `sudo dpkg`, or copies AppImage to `~/.local/bin/oggybridge`.
-7. **macOS:** Copies the compiled `.app` bundle directly to `/Applications/`.
-
-Re-running the script later pulls the latest source and rebuilds.
-
-</details>
-
-### System Requirements
-
-| | Minimum |
-|---|---------|
-| **OS** | Ubuntu 22.04+ / Fedora 39+ / macOS 14+ |
-| **Rust** | Stable — [rustup.rs](https://rustup.rs) |
-| **Node.js** | ≥ 18 |
+Builds from source — requires Node.js ≥ 18. Script installs Rust automatically if missing.
 
 ---
 

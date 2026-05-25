@@ -1,11 +1,6 @@
-<div style="display:flex; justify-content:center;">
-  <img 
-    src="src/assets/logo.png" 
-    alt="OggyBridge logo" 
-    width="200"
-    style="border-radius:40px;"
-  />
-</div>
+<p align="center">
+  <img src="src/assets/logo.png" alt="OggyBridge logo" width="200" />
+</p>
 <h1 align="center">   OggyBridge</h1>
 
 <p align="center">
@@ -88,16 +83,16 @@ Dark theme optimized for long coding sessions. GitHub-inspired color palette. Je
 
 The easiest way to get OggyBridge is to download the compiled binaries directly from our [Releases](https://github.com/nhatcoi/oggybridge/releases) page. **No compilation or programming tools (Rust/Node) are needed!**
 
-*   **Linux (Ubuntu/Debian):** Download the `.deb` package and install it via command line:
+*   **Linux (Ubuntu/Debian):** Download the `.deb` package and install it:
     ```bash
-    sudo dpkg -i OggyBridge_*_amd64.deb
+    sudo dpkg -i oggybridge_*_amd64.deb
     ```
-*   **Linux (Other Distros):** Download the standalone `.AppImage` package, make it executable, and run it:
+*   **Linux (Other Distros):** Download the `.AppImage`, make it executable, and run it:
     ```bash
     chmod +x OggyBridge_*_amd64.AppImage
     ./OggyBridge_*_amd64.AppImage
     ```
-*   **macOS:** Download the `.dmg` package, open it, and drag **OggyBridge** into your **Applications** folder.
+*   **macOS:** Download the `.dmg`, open it, and drag **OggyBridge** into your **Applications** folder.
 
 ---
 

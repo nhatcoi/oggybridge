@@ -18,7 +18,7 @@ jobs:
         include:
           - platform: 'ubuntu-22.04'
             args: ''
-          - platform: 'macos-13'
+          - platform: 'macos-14'
             args: '--bundles dmg'
 
     runs-on: ${{ matrix.platform }}

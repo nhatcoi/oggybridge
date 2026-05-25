@@ -92,7 +92,7 @@ The easiest way to get OggyBridge is to download the compiled binaries directly 
     chmod +x OggyBridge_*_amd64.AppImage
     ./OggyBridge_*_amd64.AppImage
     ```
-*   **macOS:** Download the `.dmg`, open it, and drag **OggyBridge** into your **Applications** folder.
+*   **macOS:** macOS build coming in v0.2.0. Use Method 2 (build from source) in the meantime.
 
 ---
 

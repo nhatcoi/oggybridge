@@ -50,7 +50,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
         with:
-          tagName: app-v__VERSION__
+          tagName: v__VERSION__
           releaseName: 'OggyBridge v__VERSION__'
           releaseBody: 'See the assets to download this version and install OggyBridge.'
           releaseDraft: true
@@ -78,11 +78,11 @@ jobs:
             "platforms": {
               "linux-x86_64": {
                 "signature": "${APPIMAGE_SIG}",
-                "url": "https://github.com/nhatcoi/oggybridge/releases/download/app-v${VERSION}/OggyBridge_${VERSION}_amd64.AppImage"
+                "url": "https://github.com/nhatcoi/oggybridge/releases/download/v${VERSION}/OggyBridge_${VERSION}_amd64.AppImage"
               },
               "linux-deb-x86_64": {
                 "signature": "${DEB_SIG}",
-                "url": "https://github.com/nhatcoi/oggybridge/releases/download/app-v${VERSION}/OggyBridge_${VERSION}_amd64.deb"
+                "url": "https://github.com/nhatcoi/oggybridge/releases/download/v${VERSION}/OggyBridge_${VERSION}_amd64.deb"
               }
             }
           }

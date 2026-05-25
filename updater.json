@@ -1,0 +1,15 @@
+{
+  "version": "0.1.2",
+  "notes": "Release version 0.1.2",
+  "pub_date": "2026-05-25T07:37:31Z",
+  "platforms": {
+    "linux-x86_64": {
+      "signature": "",
+      "url": "https://github.com/nhatcoi/oggybridge/releases/download/app-v0.1.2/OggyBridge_0.1.2_amd64.AppImage"
+    },
+    "linux-deb-x86_64": {
+      "signature": "",
+      "url": "https://github.com/nhatcoi/oggybridge/releases/download/app-v0.1.2/OggyBridge_0.1.2_amd64.deb"
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "productName": "AgentHost",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "com.agenthost.app",
   "build": {
     "frontendDist": "../dist",
@@ -37,6 +37,11 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/icon-32.png", "icons/icon-128.png", "icons/icon-256.png", "icons/icon-512.png"]
+    "icon": [
+      "icons/icon-32.png",
+      "icons/icon-128.png",
+      "icons/icon-256.png",
+      "icons/icon-512.png"
+    ]
   }
 }

@@ -10,7 +10,6 @@ import {
   Activity,
   AlertTriangle,
   Settings,
-  HelpCircle,
   CheckSquare
 } from "./Icons";
 import { AgentPane, HookEvent, WorkspaceInfo } from "../App";

@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="#-quick-install"><img src="https://img.shields.io/badge/-Install%20Now-blue?style=for-the-badge&logo=linux&logoColor=white" alt="Install" /></a>
+  <a href="https://github.com/nhatcoi/oggybridge/releases/latest"><img src="https://img.shields.io/badge/-Download%20Latest-blue?style=for-the-badge&logo=linux&logoColor=white" alt="Download" /></a>
   <a href="#-features"><img src="https://img.shields.io/badge/-Features-green?style=for-the-badge" alt="Features" /></a>
   <a href="#-usage"><img src="https://img.shields.io/badge/-Usage-orange?style=for-the-badge" alt="Usage" /></a>
 </p>
@@ -77,48 +77,25 @@ Dark theme optimized for long coding sessions. GitHub-inspired color palette. Je
 
 ## 📦 Quick Install
 
-### Option 1: Build from Source
+> **Pre-built releases are coming soon.** For now, build from source — it takes about 2 minutes.
+
+### Build from Source (all platforms)
+
+**Prerequisites:** [Rust](https://rustup.rs) (stable) · Node.js ≥ 18
 
 ```bash
-# Clone and build
-git clone https://github.com/nhatcoi/agenthost.git
-cd agenthost
+git clone https://github.com/nhatcoi/oggybridge.git
+cd oggybridge
 npm install
 cargo tauri build
-
-# The binary will be in target/release/bundle/
 ```
 
-### Option 2: Download Release (Linux)
-
-```bash
-# Download the latest .deb package
-curl -LO https://github.com/nhatcoi/agenthost/releases/latest/download/agenthost_amd64.deb
-sudo dpkg -i agenthost_amd64.deb
-
-# Or the AppImage (no install needed)
-curl -LO https://github.com/nhatcoi/agenthost/releases/latest/download/agenthost_amd64.AppImage
-chmod +x agenthost_amd64.AppImage
-./agenthost_amd64.AppImage
-```
-
-### Option 3: Download Release (macOS)
-
-```bash
-curl -LO https://github.com/nhatcoi/agenthost/releases/latest/download/AgentHost.dmg
-open AgentHost.dmg
-```
-
-### System Requirements
-
-| | Minimum |
-|---|---------|
-| **OS** | Ubuntu 22.04+ / Fedora 39+ / macOS 14+ |
-| **Rust** | Stable (latest) — [rustup.rs](https://rustup.rs) |
-| **Node.js** | ≥ 18 |
+The installer drops into `src-tauri/target/release/bundle/`:
+- Linux: `deb/agenthost_*.deb` or `appimage/AgentHost_*.AppImage`
+- macOS: `dmg/AgentHost_*.dmg`
 
 <details>
-<summary><strong>Linux system dependencies (one-time, for building from source)</strong></summary>
+<summary><strong>Linux — one-time system dependencies</strong></summary>
 
 ```bash
 sudo apt-get install -y \
@@ -128,6 +105,18 @@ sudo apt-get install -y \
 ```
 
 </details>
+
+### Pre-built Releases *(coming soon)*
+
+Once v0.1.0 ships, binaries will be available at [Releases](https://github.com/nhatcoi/oggybridge/releases).
+
+### System Requirements
+
+| | Minimum |
+|---|---------|
+| **OS** | Ubuntu 22.04+ / Fedora 39+ / macOS 14+ |
+| **Rust** | Stable — [rustup.rs](https://rustup.rs) |
+| **Node.js** | ≥ 18 |
 
 ---
 

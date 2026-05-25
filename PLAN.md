@@ -2,7 +2,7 @@
 
 > **Status (as of M4b commit):** PTY backend, React terminal grid, workspace directory config, automatic Claude hook installer, HTTP hook bridge (M4a), and MCP coordinator (M4b) are done. Next up: M5 (Conflict detection, heatmap, auto-init prompts).
 >
-> Internal package identifier remains `agenthost` in `Cargo.toml` / `tauri.conf.json` until a rename pass is done. Window title and product branding: **OggyBridge**.
+> Internal package identifier remains `oggybridge` in `Cargo.toml` / `tauri.conf.json` until a rename pass is done. Window title and product branding: **OggyBridge**.
 
 ---
 

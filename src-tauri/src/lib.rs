@@ -1,6 +1,6 @@
 mod workspace;
 
-use agenthost_pty::PtySession;
+use oggybridge_pty::PtySession;
 use std::collections::HashMap;
 use std::fs;
 use std::sync::Mutex;

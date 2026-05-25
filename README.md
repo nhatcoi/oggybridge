@@ -90,14 +90,14 @@ The easiest way to get OggyBridge is to download the compiled binaries directly 
 
 *   **Linux (Ubuntu/Debian):** Download the `.deb` package and install it via command line:
     ```bash
-    sudo dpkg -i AgentHost_*_amd64.deb
+    sudo dpkg -i OggyBridge_*_amd64.deb
     ```
 *   **Linux (Other Distros):** Download the standalone `.AppImage` package, make it executable, and run it:
     ```bash
-    chmod +x AgentHost_*_amd64.AppImage
-    ./AgentHost_*_amd64.AppImage
+    chmod +x OggyBridge_*_amd64.AppImage
+    ./OggyBridge_*_amd64.AppImage
     ```
-*   **macOS:** Download the `.dmg` package, open it, and drag **AgentHost** into your **Applications** folder.
+*   **macOS:** Download the `.dmg` package, open it, and drag **OggyBridge** into your **Applications** folder.
 
 ---
 
@@ -147,7 +147,7 @@ Re-running the script later pulls the latest source and rebuilds.
 cargo tauri dev
 
 # Or if installed via .deb / .AppImage / .dmg
-agenthost
+oggybridge
 ```
 
 ### Workflow
@@ -199,7 +199,7 @@ agenthost
 ## 📁 Project Structure
 
 ```
-agenthost/
+oggybridge/
 ├── src/                      # React frontend
 │   ├── App.tsx               # Root layout (sidebar + pane grid)
 │   ├── panes/

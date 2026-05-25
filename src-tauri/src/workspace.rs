@@ -1,5 +1,5 @@
-use agenthost_hook_bridge::{HookBridge, HookEvent};
-use agenthost_mcp_server::McpServer;
+use oggybridge_hook_bridge::{HookBridge, HookEvent};
+use oggybridge_mcp_server::McpServer;
 use notify::{RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{new_debouncer, DebounceEventResult, Debouncer};
 use serde::Serialize;

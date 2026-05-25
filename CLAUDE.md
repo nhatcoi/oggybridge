@@ -8,7 +8,7 @@
 
 **OggyBridge** is a cross-platform desktop app (Linux + macOS first) that hosts multiple AI coding agents — Claude Code, Codex, GitHub Copilot CLI, Aider — side-by-side in one window. Its key differentiator is a **shared coordination layer** so the agents (and the user) can see who is working on what, on which files, with what tasks claimed.
 
-Internal package identifier is `agenthost`; product/window name is `OggyBridge`. Do not rename `agenthost` in `Cargo.toml` / `tauri.conf.json` without a coordinated pass.
+Internal package identifier is `oggybridge`; product/window name is `OggyBridge`. Do not rename `oggybridge` in `Cargo.toml` / `tauri.conf.json` without a coordinated pass.
 
 Full plan lives in [`PLAN.md`](./PLAN.md). Always check the **Milestone Status** table there before starting work.
 
@@ -32,7 +32,7 @@ Full plan lives in [`PLAN.md`](./PLAN.md). Always check the **Milestone Status**
 ## Repo layout
 
 ```
-agenthost/
+oggybridge/
 ├── PLAN.md                  # canonical plan; milestone status table at top
 ├── CLAUDE.md                # this file
 ├── Cargo.toml               # Rust workspace root (members: src-tauri, crates/pty, crates/hook_bridge)

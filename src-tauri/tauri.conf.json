@@ -1,7 +1,7 @@
 {
-  "productName": "AgentHost",
-  "version": "0.1.1",
-  "identifier": "com.agenthost.app",
+  "productName": "OggyBridge",
+  "version": "0.1.2",
+  "identifier": "com.oggybridge.desktop",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -12,7 +12,7 @@
     "withGlobalTauri": false,
     "windows": [
       {
-        "title": "AgentHost",
+        "title": "OggyBridge",
         "width": 1400,
         "height": 900,
         "minWidth": 900,

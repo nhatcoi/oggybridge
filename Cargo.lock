@@ -9,61 +9,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
-name = "agenthost"
-version = "0.1.1"
-dependencies = [
- "agenthost-hook-bridge",
- "agenthost-mcp-server",
- "agenthost-pty",
- "anyhow",
- "notify",
- "notify-debouncer-mini",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-fs",
- "tauri-plugin-shell",
- "tauri-plugin-updater",
- "tokio",
- "uuid",
-]
-
-[[package]]
-name = "agenthost-hook-bridge"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "serde",
- "serde_json",
- "tokio",
- "uuid",
-]
-
-[[package]]
-name = "agenthost-mcp-server"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "rmcp",
- "schemars 0.8.22",
- "serde",
- "serde_json",
- "tokio",
-]
-
-[[package]]
-name = "agenthost-pty"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "portable-pty",
-]
-
-[[package]]
 name = "aho-corasick"
 version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2489,6 +2434,61 @@ dependencies = [
  "objc2-app-kit",
  "objc2-core-foundation",
  "objc2-foundation",
+]
+
+[[package]]
+name = "oggybridge"
+version = "0.1.2"
+dependencies = [
+ "anyhow",
+ "notify",
+ "notify-debouncer-mini",
+ "oggybridge-hook-bridge",
+ "oggybridge-mcp-server",
+ "oggybridge-pty",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-fs",
+ "tauri-plugin-shell",
+ "tauri-plugin-updater",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "oggybridge-hook-bridge"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "oggybridge-mcp-server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "rmcp",
+ "schemars 0.8.22",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "oggybridge-pty"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "portable-pty",
 ]
 
 [[package]]

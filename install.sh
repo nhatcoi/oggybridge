@@ -92,8 +92,8 @@ if [[ "$PLATFORM" == "linux" ]]; then
   if [[ -n "$DEB" ]] && command -v dpkg &>/dev/null; then
     sudo dpkg -i "$DEB"
     ok "Installed via dpkg"
-    # dpkg installs binary to /usr/bin/agenthost
-    LAUNCH_CMD="agenthost"
+    # dpkg installs binary to /usr/bin/oggybridge
+    LAUNCH_CMD="oggybridge"
   elif [[ -n "$APPIMAGE" ]]; then
     DEST="$HOME/.local/bin/oggybridge"
     mkdir -p "$HOME/.local/bin"
@@ -125,7 +125,7 @@ elif [[ "$PLATFORM" == "macos" ]]; then
     LAUNCH_CMD="open /Applications/$(basename "$APP")"
   elif [[ -n "$DMG" ]]; then
     open "$DMG"
-    ok "DMG opened — drag AgentHost to Applications."
+    ok "DMG opened — drag OggyBridge to Applications."
   else
     die "No bundle found under src-tauri/target/release/bundle/"
   fi

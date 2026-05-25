@@ -1,5 +1,6 @@
-import { AgentPane, HookEvent, WorkspaceInfo } from "../App";
+import { AgentPane, FileHeatEntry, HookEvent, WorkspaceInfo } from "../App";
 import TasksView from "./TasksView";
+import FileHeatmap from "./FileHeatmap";
 import "./Sidebar.css";
 
 interface Agent {
@@ -16,6 +17,7 @@ interface Props {
   onAddPane: (agentId: string) => void;
   onMaxPerRowChange: (n: number) => void;
   hookEvents: HookEvent[];
+  fileHeatmap: FileHeatEntry[];
 }
 
 function fmtTime(ts: number): string {
@@ -36,7 +38,8 @@ const AGENT_ICONS: Record<string, string> = {
   "shell":       "💻",
 };
 
-export default function Sidebar({ agents, panes, workspace, maxPerRow, onAddPane, onMaxPerRowChange, hookEvents }: Props) {
+export default function Sidebar({ agents, panes, workspace, maxPerRow, onAddPane, onMaxPerRowChange, hookEvents, fileHeatmap }: Props) {
+  const conflictCount = fileHeatmap.filter((e) => e.hasConflict).length;
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -98,6 +101,20 @@ export default function Sidebar({ agents, panes, workspace, maxPerRow, onAddPane
         </div>
       </section>
 
+      {conflictCount > 0 && (
+        <div className="conflict-banner">
+          <span>⚠</span>
+          <span>{conflictCount} file conflict{conflictCount > 1 ? "s" : ""} detected</span>
+        </div>
+      )}
+
+      {fileHeatmap.length > 0 && (
+        <section className="sidebar-section">
+          <h3 className="sidebar-section-title">File Heatmap</h3>
+          <FileHeatmap entries={fileHeatmap} />
+        </section>
+      )}
+
       {hookEvents.length > 0 && (
         <section className="sidebar-section activity-section">
           <h3 className="sidebar-section-title">Activity</h3>
@@ -119,7 +136,7 @@ export default function Sidebar({ agents, panes, workspace, maxPerRow, onAddPane
       )}
 
       <div className="sidebar-footer">
-        <span className="version-label">v0.1.0 · M4</span>
+        <span className="version-label">v0.1.0 · M5</span>
       </div>
     </aside>
   );

@@ -1,6 +1,6 @@
 # Plan: OggyBridge — Multi-Agent Coding Host Desktop App
 
-> **Status (as of M4a commit):** PTY backend, React terminal grid, workspace directory config, automatic Claude hook installer, and HTTP hook bridge (M4a) are done. Next up: MCP coordinator (M4b).
+> **Status (as of M4b commit):** PTY backend, React terminal grid, workspace directory config, automatic Claude hook installer, HTTP hook bridge (M4a), and MCP coordinator (M4b) are done. Next up: M5 (Conflict detection, heatmap, auto-init prompts).
 >
 > Internal package identifier remains `agenthost` in `Cargo.toml` / `tauri.conf.json` until a rename pass is done. Window title and product branding: **OggyBridge**.
 
@@ -14,8 +14,8 @@
 | M2 | Agent registry + multi-pane grid + drag-resize | ✅ Done |
 | M3 | Workspace picker + `.agents/` init + markdown watcher | ✅ Done |
 | M4a | Hook bridge (axum) | ✅ Done |
-| M4b | MCP coordinator (rmcp) | ⬜ Not started |
-| M5 | 6 MCP tools + conflict detection + file heatmap | ⬜ Not started |
+| M4b | MCP coordinator (rmcp) | ✅ Done |
+| M5 | 6 MCP tools + conflict detection + file heatmap | ✅ Done |
 | M6 | Settings, theme, bundle `.deb` / `.AppImage` / `.dmg` | ⬜ Not started |
 | M7 | Post-MVP agent-specific integrations | ⬜ Not started |
 

@@ -187,6 +187,19 @@
   max-width: 160px;
 }
 
+.conflict-banner {
+  margin: 6px 8px 2px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: #161006;
+  border: 1px solid #d29922;
+  font-size: 11px;
+  color: #d29922;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .sidebar-footer {
   margin-top: auto;
   padding: 10px 16px;

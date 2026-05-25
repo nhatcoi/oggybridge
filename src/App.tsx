@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { listen } from "@tauri-apps/api/event";
 import PaneGrid from "./panes/PaneGrid";
 import Sidebar from "./overview/Sidebar";
@@ -27,6 +27,15 @@ export interface HookEvent {
   ts: number;
 }
 
+export interface FileHeatEntry {
+  path: string;
+  agents: string[];   // unique agents that touched this file
+  latestTs: number;
+  hasConflict: boolean; // 2+ agents within CONFLICT_WINDOW_SECS
+}
+
+const CONFLICT_WINDOW_SECS = 60;
+
 interface FileChangedPayload {
   kind: string;
   content: string;
@@ -50,6 +59,30 @@ export default function App() {
   const [workspace, setWorkspace] = useState<WorkspaceInfo | null>(null);
   const [maxPerRow, setMaxPerRow] = useState(2);
   const [hookEvents, setHookEvents] = useState<HookEvent[]>([]);
+
+  const fileHeatmap = useMemo<FileHeatEntry[]>(() => {
+    const now = Date.now() / 1000;
+    const map = new Map<string, { agentId: string; ts: number }[]>();
+    for (const ev of hookEvents) {
+      for (const file of ev.files) {
+        if (!map.has(file)) map.set(file, []);
+        map.get(file)!.push({ agentId: ev.agentId, ts: ev.ts });
+      }
+    }
+    const entries: FileHeatEntry[] = [];
+    for (const [path, touches] of map) {
+      const recent = touches.filter((t) => now - t.ts < CONFLICT_WINDOW_SECS);
+      const recentAgents = new Set(recent.map((t) => t.agentId));
+      const allAgents = [...new Set(touches.map((t) => t.agentId))];
+      const latestTs = Math.max(...touches.map((t) => t.ts));
+      entries.push({ path, agents: allAgents, latestTs, hasConflict: recentAgents.size > 1 });
+    }
+    entries.sort((a, b) => {
+      if (a.hasConflict !== b.hasConflict) return a.hasConflict ? -1 : 1;
+      return b.latestTs - a.latestTs;
+    });
+    return entries.slice(0, 20);
+  }, [hookEvents]);
 
   // Listen for file-change events from the Rust watcher
   useEffect(() => {
@@ -98,6 +131,7 @@ export default function App() {
         maxPerRow={maxPerRow}
         onMaxPerRowChange={setMaxPerRow}
         hookEvents={hookEvents}
+        fileHeatmap={fileHeatmap}
       />
       <main className="main-area">
         <WorkspaceBar

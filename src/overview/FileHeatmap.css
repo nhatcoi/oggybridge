@@ -1,0 +1,66 @@
+.heatmap {
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.heatmap-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  min-width: 0;
+}
+
+.heatmap-conflict {
+  border-color: #d29922;
+  background: #161006;
+}
+
+.conflict-icon {
+  font-size: 11px;
+  flex-shrink: 0;
+  color: #d29922;
+}
+
+.heatmap-path {
+  flex: 1;
+  color: #8b949e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.heatmap-agents {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.agent-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.conflict-banner {
+  margin: 0 8px 4px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: #161006;
+  border: 1px solid #d29922;
+  font-size: 11px;
+  color: #d29922;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}

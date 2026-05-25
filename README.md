@@ -75,13 +75,33 @@ Dark theme optimized for long coding sessions. GitHub-inspired color palette. Je
 
 ---
 
-## 📦 Quick Install
+## 📦 Installation
+
+### 🚀 Method 1: Pre-built Releases (Recommended)
+
+The easiest way to get OggyBridge is to download the compiled binaries directly from our [Releases](https://github.com/nhatcoi/oggybridge/releases) page. **No compilation or programming tools (Rust/Node) are needed!**
+
+*   **Linux (Ubuntu/Debian):** Download the `.deb` package and install it via your package manager or command line:
+    ```bash
+    sudo dpkg -i AgentHost_*_amd64.deb
+    ```
+*   **Linux (Other Distros):** Download the standalone `.AppImage` package, make it executable, and run it:
+    ```bash
+    chmod +x AgentHost_*_amd64.AppImage
+    ./AgentHost_*_amd64.AppImage
+    ```
+
+---
+
+### 🛠️ Method 2: Build & Install from Source (For Developers)
+
+If you want to build the application from source on your local machine, run the quick install script:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nhatcoi/oggybridge/main/install.sh | bash
 ```
 
-The script handles everything: installs Rust (if missing), system deps (Linux/apt), clones source, builds, and installs the binary.
+The script handles everything: installs Rust (if missing), system dependencies (Linux/apt), clones the source code, builds the binary, and installs it.
 
 **Prerequisites:** Node.js ≥ 18 · `sudo` access (Linux, for system deps + dpkg)
 
@@ -96,13 +116,9 @@ The script handles everything: installs Rust (if missing), system deps (Linux/ap
 6. Linux: installs `.deb` via dpkg, or copies AppImage to `~/.local/bin/oggybridge`
 7. macOS: opens the `.dmg` installer
 
-Re-running the script later pulls latest source and rebuilds.
+Re-running the script later pulls the latest source and rebuilds.
 
 </details>
-
-### Pre-built Releases *(coming soon)*
-
-Once v0.1.0 ships, binaries will be at [Releases](https://github.com/nhatcoi/oggybridge/releases) — no build step needed.
 
 ### System Requirements
 

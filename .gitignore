@@ -32,3 +32,5 @@ npm-debug.log*
 .claude/settings.local.json
 
 .antigravitycli/
+
+mcp.json

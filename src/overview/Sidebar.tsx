@@ -10,14 +10,13 @@ import {
   Activity,
   AlertTriangle,
   Settings,
-  HelpCircle,
   CheckSquare,
   X
 } from "./Icons";
 import { AgentPane, HookEvent, WorkspaceInfo } from "../App";
 import TasksView from "./TasksView";
 import { useState } from "react";
-import logoUrl from "../assets/logo.ico";
+import logoUrl from "../assets/logo.png";
 import "./Sidebar.css";
 
 interface Agent {

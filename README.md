@@ -81,11 +81,11 @@ Dark theme optimized for long coding sessions. GitHub-inspired color palette. Je
 
 ### 🐧 Linux
 
-Download from **[Releases v0.1.3](https://github.com/nhatcoi/oggybridge/releases/tag/v0.1.3)** or install directly:
+Download from **[Releases v0.1.4](https://github.com/nhatcoi/oggybridge/releases/tag/v0.1.4)** or install directly:
 
 ```bash
-curl -LO https://github.com/nhatcoi/oggybridge/releases/download/v0.1.3/OggyBridge_0.1.3_amd64.deb
-sudo dpkg -i OggyBridge_0.1.3_amd64.deb
+curl -LO https://github.com/nhatcoi/oggybridge/releases/download/v0.1.4/OggyBridge_0.1.4_amd64.deb
+sudo dpkg -i OggyBridge_0.1.4_amd64.deb
 oggybridge
 ```
 

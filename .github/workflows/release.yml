@@ -54,8 +54,53 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: 'OggyBridge v__VERSION__'
-          releaseBody: 'See the assets to download this version and install OggyBridge.'
-          releaseDraft: false
+          releaseBody: |
+            ## OggyBridge v__VERSION__
+
+            Multi-agent AI coding workspace — one window for all your agents, zero chaos.
+
+            ### What's New in v__VERSION__
+
+            **macOS Apple Silicon**
+
+            - Added `.dmg` release for Mac chip M (`aarch64`)
+            - GitHub Actions now builds macOS packages on `macos-14`
+            - App bundle icons are generated from the OggyBridge logo
+
+            **Release Workflow**
+
+            - Linux packages and macOS `.dmg` are published to the same release
+            - Release notes include direct download links for each platform
+
+            ### Download
+
+            | Platform | File |
+            | --- | --- |
+            | macOS Apple Silicon | `OggyBridge___VERSION___aarch64.dmg` |
+            | Linux (Ubuntu/Debian) | `OggyBridge___VERSION___amd64.deb` |
+            | Linux (AppImage / all distros) | `OggyBridge___VERSION___amd64.AppImage` |
+            | Linux (Fedora/RHEL) | `OggyBridge-__VERSION__-1.x86_64.rpm` |
+
+            ```bash
+            # macOS Apple Silicon
+            curl -LO https://github.com/nhatcoi/oggybridge/releases/download/v__VERSION__/OggyBridge___VERSION___aarch64.dmg
+            open OggyBridge___VERSION___aarch64.dmg
+
+            # Ubuntu/Debian
+            curl -LO https://github.com/nhatcoi/oggybridge/releases/download/v__VERSION__/OggyBridge___VERSION___amd64.deb
+            sudo dpkg -i OggyBridge___VERSION___amd64.deb
+            oggybridge
+
+            # Update from older version
+            oggybridge --update
+            ```
+
+            ### Requirements
+
+            - macOS Apple Silicon for the `.dmg`
+            - Linux Ubuntu 22.04+, Fedora 39+, or another distro that supports AppImage
+            - No Rust/Node needed for pre-built packages
+          releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
 
@@ -96,3 +141,16 @@ jobs:
           git add updater.json
           git commit -m "chore: update updater.json for v${VERSION} [skip ci]" || echo "No changes to commit"
           git push origin HEAD:main || echo "Failed to push updater.json"
+
+  publish-release:
+    needs: publish-tauri
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Publish draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          gh release edit "v${VERSION}" --draft=false --latest

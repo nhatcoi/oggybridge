@@ -1,6 +1,6 @@
 {
   "productName": "OggyBridge",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "identifier": "com.oggybridge.desktop",
   "build": {
     "frontendDist": "../dist",

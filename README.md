@@ -1,5 +1,12 @@
-
-<h1 align="center">🌉 OggyBridge</h1>
+<div style="display:flex; justify-content:center;">
+  <img 
+    src="src/assets/logo.png" 
+    alt="OggyBridge logo" 
+    width="200"
+    style="border-radius:40px;"
+  />
+</div>
+<h1 align="center">   OggyBridge</h1>
 
 <p align="center">
   <strong>One window. All your AI coding agents. Zero chaos.</strong>
@@ -81,7 +88,7 @@ Dark theme optimized for long coding sessions. GitHub-inspired color palette. Je
 
 The easiest way to get OggyBridge is to download the compiled binaries directly from our [Releases](https://github.com/nhatcoi/oggybridge/releases) page. **No compilation or programming tools (Rust/Node) are needed!**
 
-*   **Linux (Ubuntu/Debian):** Download the `.deb` package and install it via your package manager or command line:
+*   **Linux (Ubuntu/Debian):** Download the `.deb` package and install it via command line:
     ```bash
     sudo dpkg -i AgentHost_*_amd64.deb
     ```
@@ -90,31 +97,32 @@ The easiest way to get OggyBridge is to download the compiled binaries directly 
     chmod +x AgentHost_*_amd64.AppImage
     ./AgentHost_*_amd64.AppImage
     ```
+*   **macOS:** Download the `.dmg` package, open it, and drag **AgentHost** into your **Applications** folder.
 
 ---
 
 ### 🛠️ Method 2: Build & Install from Source (For Developers)
 
-If you want to build the application from source on your local machine, run the quick install script:
+If you want to build the application from source on your local machine (supports **both Linux and macOS**), run the quick installer script:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nhatcoi/oggybridge/main/install.sh | bash
 ```
 
-The script handles everything: installs Rust (if missing), system dependencies (Linux/apt), clones the source code, builds the binary, and installs it.
+The script handles everything: installs Rust (if missing), system dependencies, clones the source code, builds the binary, and installs it.
 
 **Prerequisites:** Node.js ≥ 18 · `sudo` access (Linux, for system deps + dpkg)
 
 <details>
 <summary><strong>What the installer does</strong></summary>
 
-1. Checks / installs Rust via rustup
-2. Installs Tauri CLI (`cargo install tauri-cli`)
-3. **Linux (apt):** installs WebKitGTK 4.1, GTK3, and related libs
-4. Clones source to `~/.local/share/oggybridge-src`
-5. Runs `npm install` + `cargo tauri build`
-6. Linux: installs `.deb` via dpkg, or copies AppImage to `~/.local/bin/oggybridge`
-7. macOS: opens the `.dmg` installer
+1. Checks/installs Rust via rustup.
+2. Installs Tauri CLI (`cargo install tauri-cli`).
+3. **Linux (apt):** Installs WebKitGTK 4.1, GTK3, and related libs (requires `sudo`).
+4. Clones source to `~/.local/share/oggybridge-src`.
+5. Runs `npm install` + `cargo tauri build`.
+6. **Linux:** Installs `.deb` via `sudo dpkg`, or copies AppImage to `~/.local/bin/oggybridge`.
+7. **macOS:** Copies the compiled `.app` bundle directly to `/Applications/`.
 
 Re-running the script later pulls the latest source and rebuilds.
 

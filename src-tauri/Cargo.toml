@@ -26,13 +26,3 @@ uuid = { version = "1", features = ["v4"] }
 notify = "6"
 notify-debouncer-mini = "0.4"
 anyhow = "1"
-
-[profile.dev]
-incremental = true
-
-[profile.release]
-panic = "abort"
-codegen-units = 1
-lto = true
-opt-level = "s"
-strip = true

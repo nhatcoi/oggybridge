@@ -13,15 +13,15 @@ Dưới đây là câu trả lời chi tiết và các gợi ý đề xuất cho
 **Đúng vậy, Method 1 đã được code thành công và hoạt động trơn chu.** 
 
 Các phần triển khai cụ thể trong Rust bao gồm:
-* **Ghi cấu hình tự động (.mcp.json):** Hàm `write_mcp_json` từ dòng [170 đến 184 trong src-tauri/src/workspace.rs](file:///home/nhatcoi/agenthost/src-tauri/src/workspace.rs#L170-L184) tự động viết file cấu hình để AI đọc được khi mở dự án.
-* **Định nghĩa 6 công cụ MCP:** Được triển khai trong crate `crates/mcp_server` tại tệp [crates/mcp_server/src/lib.rs](file:///home/nhatcoi/agenthost/crates/mcp_server/src/lib.rs):
-  * Khởi động server MCP HTTP: Hàm `McpServer::start` tại dòng [21-46](file:///home/nhatcoi/agenthost/crates/mcp_server/src/lib.rs#L21-L46).
-  * Tool `team_state`: Dòng [82-86](file:///home/nhatcoi/agenthost/crates/mcp_server/src/lib.rs#L82-L86).
-  * Tool `list_tasks`: Dòng [88-92](file:///home/nhatcoi/agenthost/crates/mcp_server/src/lib.rs#L88-L92).
-  * Tool `claim_task`: Dòng [94-100](file:///home/nhatcoi/agenthost/crates/mcp_server/src/lib.rs#L94-L100).
-  * Tool `release_task`: Dòng [102-108](file:///home/nhatcoi/agenthost/crates/mcp_server/src/lib.rs#L102-L108).
-  * Tool `report_progress`: Dòng [110-122](file:///home/nhatcoi/agenthost/crates/mcp_server/src/lib.rs#L110-L122).
-  * Tool `touched_files`: Dòng [124-136](file:///home/nhatcoi/agenthost/crates/mcp_server/src/lib.rs#L124-L136).
+* **Ghi cấu hình tự động (.mcp.json):** Hàm `write_mcp_json` từ dòng [170 đến 184 trong src-tauri/src/workspace.rs](file:///home/nhatcoi/oggybridge/src-tauri/src/workspace.rs#L170-L184) tự động viết file cấu hình để AI đọc được khi mở dự án.
+* **Định nghĩa 6 công cụ MCP:** Được triển khai trong crate `crates/mcp_server` tại tệp [crates/mcp_server/src/lib.rs](file:///home/nhatcoi/oggybridge/crates/mcp_server/src/lib.rs):
+  * Khởi động server MCP HTTP: Hàm `McpServer::start` tại dòng [21-46](file:///home/nhatcoi/oggybridge/crates/mcp_server/src/lib.rs#L21-L46).
+  * Tool `team_state`: Dòng [82-86](file:///home/nhatcoi/oggybridge/crates/mcp_server/src/lib.rs#L82-L86).
+  * Tool `list_tasks`: Dòng [88-92](file:///home/nhatcoi/oggybridge/crates/mcp_server/src/lib.rs#L88-L92).
+  * Tool `claim_task`: Dòng [94-100](file:///home/nhatcoi/oggybridge/crates/mcp_server/src/lib.rs#L94-L100).
+  * Tool `release_task`: Dòng [102-108](file:///home/nhatcoi/oggybridge/crates/mcp_server/src/lib.rs#L102-L108).
+  * Tool `report_progress`: Dòng [110-122](file:///home/nhatcoi/oggybridge/crates/mcp_server/src/lib.rs#L110-L122).
+  * Tool `touched_files`: Dòng [124-136](file:///home/nhatcoi/oggybridge/crates/mcp_server/src/lib.rs#L124-L136).
 
 ---
 
@@ -31,7 +31,7 @@ Hiện tại, việc hỗ trợ thủ công là do người dùng vẫn phải t
 
 #### 💡 Gợi ý A: Sử dụng MCP Prompts Template (Khuyên dùng - Chuẩn giao thức MCP)
 Giao thức MCP hỗ trợ tính năng **Prompts** (cho phép Server cung cấp các mẫu prompt có sẵn cho Client).
-* **Cách hoạt động:** Ta sẽ code thêm một API Prompt có tên là `oggy-init` vào [crates/mcp_server/src/lib.rs](file:///home/nhatcoi/agenthost/crates/mcp_server/src/lib.rs).
+* **Cách hoạt động:** Ta sẽ code thêm một API Prompt có tên là `oggy-init` vào [crates/mcp_server/src/lib.rs](file:///home/nhatcoi/oggybridge/crates/mcp_server/src/lib.rs).
 * **Trải nghiệm sử dụng:** Trong Claude Code, bạn chỉ cần gõ lệnh `/prompts`. Claude sẽ hiển thị danh sách các mẫu prompt từ server `oggybridge`, trong đó có `oggy-init`. Khi bạn chọn, Claude sẽ tự nạp chỉ dẫn phối hợp vào ngữ cảnh và bắt đầu làm việc theo luật.
 
 #### 💡 Gợi ý B: Tự động "bơm" chỉ dẫn (Auto-injection) khi tạo pane
@@ -81,9 +81,9 @@ Lập luận của bạn **chính xác 100%** và thể hiện tư duy thiết k
      `"Hãy đọc file AGENTS.md ở thư mục gốc dự án để hiểu cách sử dụng các công cụ MCP (như claim_task, list_tasks, team_state) và quy trình phối hợp trong dự án này trước khi bắt đầu.\n"`
 
 #### 🛠️ Bước 2: Triển khai A (MCP Prompt `oggy-init`)
-Chúng ta sẽ mở rộng crate [crates/mcp_server/src/lib.rs](file:///home/nhatcoi/agenthost/crates/mcp_server/src/lib.rs):
+Chúng ta sẽ mở rộng crate [crates/mcp_server/src/lib.rs](file:///home/nhatcoi/oggybridge/crates/mcp_server/src/lib.rs):
 1. Sử dụng trait/macro của `rmcp` để đăng ký khả năng phục vụ Prompt.
-2. Định nghĩa prompt `oggy-init` trả về hướng dẫn chi tiết lấy từ chính nội dung file [AGENTS.md](file:///home/nhatcoi/agenthost/ws-test/AGENTS.md).
+2. Định nghĩa prompt `oggy-init` trả về hướng dẫn chi tiết lấy từ chính nội dung file [AGENTS.md](file:///home/nhatcoi/oggybridge/ws-test/AGENTS.md).
 
 ---
 

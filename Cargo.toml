@@ -1,3 +1,13 @@
 [workspace]
 members = ["src-tauri", "crates/pty", "crates/hook_bridge", "crates/mcp_server"]
 resolver = "2"
+
+[profile.dev]
+incremental = true
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

@@ -85,7 +85,7 @@ The easiest way to get OggyBridge is to download the compiled binaries directly 
 
 *   **Linux (Ubuntu/Debian):** Download the `.deb` package and install it:
     ```bash
-    sudo dpkg -i oggybridge_*_amd64.deb
+    sudo dpkg -i OggyBridge_*_amd64.deb
     ```
 *   **Linux (Other Distros):** Download the `.AppImage`, make it executable, and run it:
     ```bash

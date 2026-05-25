@@ -10,11 +10,14 @@ import {
   Activity,
   AlertTriangle,
   Settings,
-  CheckSquare
+  HelpCircle,
+  CheckSquare,
+  X
 } from "./Icons";
 import { AgentPane, HookEvent, WorkspaceInfo } from "../App";
 import TasksView from "./TasksView";
 import { useState } from "react";
+import logoUrl from "../assets/logo.ico";
 import "./Sidebar.css";
 
 interface Agent {
@@ -49,10 +52,10 @@ function shortPath(p: string): string {
 
 const AGENT_ICONS: Record<string, React.ReactNode> = {
   "claude-code": <Bot size={15} />,
-  "codex":       <Zap size={15} />,
-  "copilot":     <Github size={15} />,
+  "codex": <Zap size={15} />,
+  "copilot": <Github size={15} />,
   "antigravity": <Compass size={15} />,
-  "shell":       <Terminal size={15} />,
+  "shell": <Terminal size={15} />,
 };
 
 export default function Sidebar({
@@ -67,6 +70,7 @@ export default function Sidebar({
   onToggleCommandPalette,
 }: Props) {
   const [activeView, setActiveView] = useState<SidebarView | null>("explorer");
+  const [isLogoOpen, setIsLogoOpen] = useState(false);
 
   // Check conflict if two agents modify files within a certain time window (e.g. 30 seconds)
   const hasConflict = hookEvents.length >= 2 && (() => {
@@ -95,6 +99,10 @@ export default function Sidebar({
       {/* 1. Activity Bar */}
       <div className="activity-bar">
         <div className="activity-bar-top">
+          <div className="activity-bar-brand" title="About OggyBridge" onClick={() => setIsLogoOpen(true)}>
+            <img src={logoUrl} alt="OggyBridge" className="activity-logo" />
+          </div>
+
           <button
             className={`activity-tab-btn ${activeView === "explorer" ? "active" : ""}`}
             onClick={() => handleTabClick("explorer")}
@@ -102,6 +110,7 @@ export default function Sidebar({
           >
             <Folder size={20} />
           </button>
+
 
           <button
             className={`activity-tab-btn ${activeView === "tasks" ? "active" : ""}`}
@@ -316,6 +325,19 @@ export default function Sidebar({
                 </section>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {isLogoOpen && (
+        <div className="logo-modal-overlay" onClick={() => setIsLogoOpen(false)}>
+          <div className="logo-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="logo-modal-close" onClick={() => setIsLogoOpen(false)} title="Close">
+              <X size={16} />
+            </button>
+            <img src={logoUrl} alt="OggyBridge Logo Large" className="logo-modal-image" />
+            <h1 className="logo-modal-title">OggyBridge</h1>
+            <p className="logo-modal-version">v0.1.0</p>
           </div>
         </div>
       )}

@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDirDialog } from "@tauri-apps/plugin-dialog";
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 import {
   FolderOpen,
   X,
@@ -89,6 +91,43 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [updateAvailable, setUpdateAvailable] = useState<any>(null);
+  const [updating, setUpdating] = useState(false);
+
+  // Check for updates on startup
+  useEffect(() => {
+    if (!("__TAURI_INTERNALS__" in window)) return;
+    let active = true;
+
+    async function checkForUpdates() {
+      try {
+        const update = await check();
+        if (update && active) {
+          setUpdateAvailable(update);
+        }
+      } catch (err) {
+        console.error("Failed to check for updates:", err);
+      }
+    }
+
+    const timer = setTimeout(checkForUpdates, 3000);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, []);
+
+  const handleApplyUpdate = async () => {
+    if (!updateAvailable) return;
+    setUpdating(true);
+    try {
+      await updateAvailable.downloadAndInstall();
+      await relaunch();
+    } catch (err) {
+      alert(`Update failed: ${err}`);
+      setUpdating(false);
+    }
+  };
 
   const applySettings = useCallback((cfg: AppSettings) => {
     // 1. Accent color
@@ -321,6 +360,23 @@ export default function App() {
         onToggleCommandPalette={() => setPaletteOpen(true)}
       />
       <main className="main-area">
+        {updateAvailable && (
+          <div className="update-banner">
+            <span className="update-banner-text">
+              A new update (version <strong>{updateAvailable.version}</strong>) is available!
+            </span>
+            <div className="update-banner-actions">
+              <button className="update-banner-btn" onClick={handleApplyUpdate} disabled={updating}>
+                {updating ? "Updating..." : "Update Now"}
+              </button>
+              {!updating && (
+                <button className="update-banner-close" onClick={() => setUpdateAvailable(null)} title="Close">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
         <WorkspaceBar
           workspace={workspace}
           onOpen={(info) => {

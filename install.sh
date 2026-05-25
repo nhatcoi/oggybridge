@@ -55,9 +55,10 @@ if [[ "$PLATFORM" == "linux" ]]; then
       libwebkit2gtk-4.1-dev libgtk-3-dev libssl-dev libdbus-1-dev \
       libayatana-appindicator3-dev librsvg2-dev libglib2.0-dev \
       libsoup-3.0-dev libjavascriptcoregtk-4.1-dev \
+      libfuse2 \
       || warn "Some system deps may have failed — check output above."
   else
-    warn "Non-Debian Linux: ensure WebKitGTK 4.1, GTK3, libssl, libdbus are installed."
+    warn "Non-Debian Linux: ensure WebKitGTK 4.1, GTK3, libssl, libdbus, fuse2 are installed."
   fi
 fi
 
@@ -82,37 +83,49 @@ cargo tauri build
 # ── install ───────────────────────────────────────────────────────────────────
 log "Installing..."
 
+LAUNCH_CMD=""
+
 if [[ "$PLATFORM" == "linux" ]]; then
-  DEB=$(find src-tauri/target/release/bundle/deb -name "*.deb" 2>/dev/null | head -1)
-  APPIMAGE=$(find src-tauri/target/release/bundle/appimage -name "*.AppImage" 2>/dev/null | head -1)
+  DEB=$(find src-tauri/target/release/bundle/deb -name "*.deb" 2>/dev/null | head -1 || true)
+  APPIMAGE=$(find src-tauri/target/release/bundle/appimage -name "*.AppImage" 2>/dev/null | head -1 || true)
 
   if [[ -n "$DEB" ]] && command -v dpkg &>/dev/null; then
     sudo dpkg -i "$DEB"
-    ok "Installed via dpkg → run: agenthost"
+    ok "Installed via dpkg"
+    # dpkg installs binary to /usr/bin/agenthost
+    LAUNCH_CMD="agenthost"
   elif [[ -n "$APPIMAGE" ]]; then
     DEST="$HOME/.local/bin/oggybridge"
     mkdir -p "$HOME/.local/bin"
     cp "$APPIMAGE" "$DEST"
     chmod +x "$DEST"
-    ok "AppImage → $DEST"
-    echo "  Run: oggybridge"
-    if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-      warn "\$HOME/.local/bin not in PATH — add it to your shell profile."
-    fi
+    ok "AppImage installed → $DEST"
+
+    # Ensure ~/.local/bin is in PATH for this session and future shells
+    export PATH="$HOME/.local/bin:$PATH"
+    for RC in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile"; do
+      if [[ -f "$RC" ]] && ! grep -q '\.local/bin' "$RC"; then
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$RC"
+        ok "Added ~/.local/bin to PATH in $(basename "$RC")"
+      fi
+    done
+
+    LAUNCH_CMD="$DEST"
   else
     die "No bundle found under src-tauri/target/release/bundle/"
   fi
 
 elif [[ "$PLATFORM" == "macos" ]]; then
-  DMG=$(find src-tauri/target/release/bundle/dmg -name "*.dmg" 2>/dev/null | head -1)
-  APP=$(find src-tauri/target/release/bundle/macos -name "*.app" 2>/dev/null | head -1)
+  DMG=$(find src-tauri/target/release/bundle/dmg -name "*.dmg" 2>/dev/null | head -1 || true)
+  APP=$(find src-tauri/target/release/bundle/macos -name "*.app" 2>/dev/null | head -1 || true)
 
-  if [[ -n "$DMG" ]]; then
-    open "$DMG"
-    ok "DMG opened — drag AgentHost to Applications."
-  elif [[ -n "$APP" ]]; then
+  if [[ -n "$APP" ]]; then
     cp -r "$APP" /Applications/
     ok "Installed → /Applications/$(basename "$APP")"
+    LAUNCH_CMD="open /Applications/$(basename "$APP")"
+  elif [[ -n "$DMG" ]]; then
+    open "$DMG"
+    ok "DMG opened — drag AgentHost to Applications."
   else
     die "No bundle found under src-tauri/target/release/bundle/"
   fi
@@ -120,3 +133,12 @@ fi
 
 echo ""
 echo -e "${GREEN}${BOLD}OggyBridge installed!${NC}"
+
+# ── auto-launch ───────────────────────────────────────────────────────────────
+if [[ -n "$LAUNCH_CMD" ]]; then
+  log "Launching OggyBridge..."
+  nohup $LAUNCH_CMD &>/dev/null &
+  ok "OggyBridge is running (PID $!)"
+  echo ""
+  echo "  Command: $LAUNCH_CMD"
+fi

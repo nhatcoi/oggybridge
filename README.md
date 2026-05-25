@@ -24,7 +24,7 @@
 
 
 <p align="center">
-  <img src="image.png" alt="OggyBridge" width="100%" />
+  <img src="src/assets/banner.png" alt="OggyBridge" width="100%" />
 </p>
 
 
@@ -77,38 +77,32 @@ Dark theme optimized for long coding sessions. GitHub-inspired color palette. Je
 
 ## 📦 Quick Install
 
-> **Pre-built releases are coming soon.** For now, build from source — it takes about 2 minutes.
-
-### Build from Source (all platforms)
-
-**Prerequisites:** [Rust](https://rustup.rs) (stable) · Node.js ≥ 18
-
 ```bash
-git clone https://github.com/nhatcoi/oggybridge.git
-cd oggybridge
-npm install
-cargo tauri build
+curl -fsSL https://raw.githubusercontent.com/nhatcoi/oggybridge/main/install.sh | bash
 ```
 
-The installer drops into `src-tauri/target/release/bundle/`:
-- Linux: `deb/agenthost_*.deb` or `appimage/AgentHost_*.AppImage`
-- macOS: `dmg/AgentHost_*.dmg`
+The script handles everything: installs Rust (if missing), system deps (Linux/apt), clones source, builds, and installs the binary.
+
+**Prerequisites:** Node.js ≥ 18 · `sudo` access (Linux, for system deps + dpkg)
 
 <details>
-<summary><strong>Linux — one-time system dependencies</strong></summary>
+<summary><strong>What the installer does</strong></summary>
 
-```bash
-sudo apt-get install -y \
-  libwebkit2gtk-4.1-dev libgtk-3-dev libssl-dev libdbus-1-dev \
-  libayatana-appindicator3-dev librsvg2-dev libglib2.0-dev \
-  libsoup-3.0-dev libjavascriptcoregtk-4.1-dev
-```
+1. Checks / installs Rust via rustup
+2. Installs Tauri CLI (`cargo install tauri-cli`)
+3. **Linux (apt):** installs WebKitGTK 4.1, GTK3, and related libs
+4. Clones source to `~/.local/share/oggybridge-src`
+5. Runs `npm install` + `cargo tauri build`
+6. Linux: installs `.deb` via dpkg, or copies AppImage to `~/.local/bin/oggybridge`
+7. macOS: opens the `.dmg` installer
+
+Re-running the script later pulls latest source and rebuilds.
 
 </details>
 
 ### Pre-built Releases *(coming soon)*
 
-Once v0.1.0 ships, binaries will be available at [Releases](https://github.com/nhatcoi/oggybridge/releases).
+Once v0.1.0 ships, binaries will be at [Releases](https://github.com/nhatcoi/oggybridge/releases) — no build step needed.
 
 ### System Requirements
 

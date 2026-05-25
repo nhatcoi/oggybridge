@@ -2,7 +2,7 @@
   "mcpServers": {
     "oggybridge": {
       "type": "streamableHttp",
-      "url": "http://127.0.0.1:38519/mcp"
+      "url": "http://127.0.0.1:46537/mcp"
     }
   }
 }

@@ -122,3 +122,78 @@ html, body, #root {
   background-color: var(--text-muted);
   animation: none;
 }
+
+/* Update notification banner */
+.update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 10px 20px;
+  gap: 16px;
+  animation: slideDown 0.25s ease-out;
+  flex-shrink: 0;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+.update-banner-text {
+  font-size: 13.5px;
+  color: var(--text-primary);
+}
+
+.update-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.update-banner-btn {
+  background: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
+  color: var(--bg-primary);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-sans);
+}
+
+.update-banner-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.update-banner-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.update-banner-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.update-banner-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  transition: all 0.15s ease;
+}
+
+.update-banner-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}

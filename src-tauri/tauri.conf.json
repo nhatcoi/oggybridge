@@ -25,6 +25,15 @@
       "csp": null
     }
   },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://raw.githubusercontent.com/nhatcoi/oggybridge/main/updater.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDYwRTA5QUQyRkY0MUFCODgKUldTSXEwSC8wcHJnWUxaZUJwUUdyWGI3dTNxbExHNVhSaEZPeXZnQ1N4U0pGNCtrY2VPdlk3VTAK"
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",

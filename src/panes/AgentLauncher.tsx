@@ -1,5 +1,5 @@
 import { Bot, Zap, Github, Atom, Terminal, Plus } from "../overview/Icons";
-import "./AgentLauncher.css";
+import "../styles/AgentLauncher.css";
 
 interface Props {
   onLaunch: (agentId: string) => void;
@@ -75,23 +75,15 @@ export default function AgentLauncher({ onLaunch, onAddCustom }: Props) {
             <p className="launcher-card-desc">{agent.desc}</p>
             <div className="launcher-card-tags">
               {agent.tags.map((tag) => (
-                <span key={tag} className="launcher-card-tag">
-                  {tag}
-                </span>
+                <span key={tag} className="launcher-card-tag">{tag}</span>
               ))}
             </div>
-            <button
-              className="launcher-card-btn"
-              onClick={() => onLaunch(agent.id)}
-            >
+            <button className="launcher-card-btn" onClick={() => onLaunch(agent.id)}>
               Launch
             </button>
           </div>
         ))}
-        <div
-          className="launcher-card custom"
-          onClick={() => onAddCustom?.()}
-        >
+        <div className="launcher-card custom" onClick={() => onAddCustom?.()}>
           <Plus size={32} className="launcher-card-add-icon" />
           <span className="launcher-card-add-text">Add Custom Agent</span>
           <span className="launcher-card-add-sub">

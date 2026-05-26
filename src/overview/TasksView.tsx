@@ -1,5 +1,5 @@
 import { CheckSquare, Square } from "./Icons";
-import "./TasksView.css";
+import "../styles/TasksView.css";
 
 interface Props {
   tasksMd: string;
@@ -35,9 +35,7 @@ export default function TasksView({ tasksMd }: Props) {
 
   return (
     <div className="tasks-view">
-      <div className="tasks-summary">
-        {done}/{tasks.length} done
-      </div>
+      <div className="tasks-summary">{done}/{tasks.length} done</div>
       {tasks.map((t) => (
         <div key={t.id} className={`task-item${t.done ? " done" : ""}`}>
           <span className="task-check">

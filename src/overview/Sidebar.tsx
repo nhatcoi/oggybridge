@@ -1,23 +1,13 @@
 import {
-  Bot,
-  Zap,
-  Github,
-  Compass,
-  Terminal,
-  Search,
-  Folder,
-  FolderOpen,
-  Activity,
-  AlertTriangle,
-  Settings,
-  CheckSquare,
-  X
+  Bot, Search, Folder, FolderOpen, Activity, AlertTriangle, Settings, CheckSquare, X,
 } from "./Icons";
-import { AgentPane, HookEvent, WorkspaceInfo } from "../App";
+import { AgentPane, HookEvent, WorkspaceInfo } from "../types";
+import { AGENT_ICONS } from "../agents";
+import { shortPath, fmtTime } from "../utils";
 import TasksView from "./TasksView";
 import { useState } from "react";
 import logoUrl from "../assets/logo.png";
-import "./Sidebar.css";
+import "../styles/Sidebar.css";
 
 interface Agent {
   readonly id: string;
@@ -39,24 +29,6 @@ interface Props {
 
 export type SidebarView = "explorer" | "tasks" | "agents" | "activity";
 
-function fmtTime(ts: number): string {
-  const d = new Date(ts * 1000);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-}
-
-function shortPath(p: string): string {
-  const parts = p.replace(/\\/g, "/").split("/");
-  return parts.length > 2 ? `…/${parts.slice(-2).join("/")}` : p;
-}
-
-const AGENT_ICONS: Record<string, React.ReactNode> = {
-  "claude-code": <Bot size={15} />,
-  "codex": <Zap size={15} />,
-  "copilot": <Github size={15} />,
-  "antigravity": <Compass size={15} />,
-  "shell": <Terminal size={15} />,
-};
-
 export default function Sidebar({
   agents,
   panes,
@@ -71,11 +43,9 @@ export default function Sidebar({
   const [activeView, setActiveView] = useState<SidebarView | null>("explorer");
   const [isLogoOpen, setIsLogoOpen] = useState(false);
 
-  // Check conflict if two agents modify files within a certain time window (e.g. 30 seconds)
   const hasConflict = hookEvents.length >= 2 && (() => {
     const first = hookEvents[0];
-    const rest = hookEvents.slice(1);
-    return rest.some(
+    return hookEvents.slice(1).some(
       (ev) =>
         ev.agentId !== first.agentId &&
         Math.abs(first.ts - ev.ts) < 30 &&
@@ -86,11 +56,7 @@ export default function Sidebar({
   const conflictFile = hasConflict && hookEvents[0].files[0] ? shortPath(hookEvents[0].files[0]) : null;
 
   const handleTabClick = (view: SidebarView) => {
-    if (activeView === view) {
-      setActiveView(null);
-    } else {
-      setActiveView(view);
-    }
+    setActiveView((prev) => (prev === view ? null : view));
   };
 
   return (
@@ -110,16 +76,13 @@ export default function Sidebar({
             <Folder size={20} />
           </button>
 
-
           <button
             className={`activity-tab-btn ${activeView === "tasks" ? "active" : ""}`}
             onClick={() => handleTabClick("tasks")}
             title="Tasks Checklist"
           >
             <CheckSquare size={20} />
-            {workspace && (
-              <span className="tab-badge-dot"></span>
-            )}
+            {workspace && <span className="tab-badge-dot"></span>}
           </button>
 
           <button
@@ -139,32 +102,18 @@ export default function Sidebar({
             title="Activity Feed"
           >
             <Activity size={20} />
-            {hasConflict && (
-              <span className="tab-badge-warning">!</span>
-            )}
+            {hasConflict && <span className="tab-badge-warning">!</span>}
           </button>
         </div>
 
         <div className="activity-bar-bottom">
-          <button
-            className="activity-tab-btn"
-            onClick={onToggleCommandPalette}
-            title="Command Palette (⌘K)"
-          >
+          <button className="activity-tab-btn" onClick={onToggleCommandPalette} title="Command Palette (⌘K)">
             <Search size={20} />
           </button>
-
-          <button
-            className="activity-tab-btn"
-            onClick={onToggleSettings}
-            title="Settings"
-          >
+          <button className="activity-tab-btn" onClick={onToggleSettings} title="Settings">
             <Settings size={20} />
           </button>
-
-          <div className="activity-user-avatar" title="User Session">
-            NC
-          </div>
+          <div className="activity-user-avatar" title="User Session">NC</div>
         </div>
       </div>
 
@@ -275,9 +224,7 @@ export default function Sidebar({
                     <h3 className="sidebar-section-title">Active Panes ({panes.length})</h3>
                   </div>
                   <div className="pane-list">
-                    {panes.length === 0 && (
-                      <p className="sidebar-hint">No open terminal panes</p>
-                    )}
+                    {panes.length === 0 && <p className="sidebar-hint">No open terminal panes</p>}
                     {panes.map((pane) => (
                       <div key={pane.id} className="pane-item">
                         <span className="agent-icon">{AGENT_ICONS[pane.agentId] ?? "▶"}</span>
@@ -307,7 +254,7 @@ export default function Sidebar({
                       <p className="sidebar-hint">No recent file or tool events</p>
                     )}
                     {hookEvents.slice(0, 20).map((ev, i) => (
-                      <div key={i} className="activity-row">
+                      <div key={`${ev.agentId}-${ev.ts}-${i}`} className="activity-row">
                         <div className="activity-header-row">
                           <span className="activity-event">{ev.event.replace(/_/g, " ")}</span>
                           <span className="activity-time">{fmtTime(ev.ts)}</span>
@@ -343,4 +290,3 @@ export default function Sidebar({
     </aside>
   );
 }
-

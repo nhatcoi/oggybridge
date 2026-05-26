@@ -8,14 +8,14 @@
   --text-primary: #f0f6fc;
   --text-secondary: #8b949e;
   --text-muted: #586069;
-  
+
   /* Agent Colors */
   --accent-claude: #ff7b72;
   --accent-codex: #58a6ff;
   --accent-copilot: #bc8cff;
   --accent-antigravity: #ff5e97;
   --accent-shell: #3fb950;
-  
+
   --accent-primary: var(--accent-codex);
   --terminal-font-size: 14px;
   --terminal-font-family: "JetBrains Mono", "Fira Code", monospace;
@@ -34,7 +34,7 @@
   --text-primary: #24292f;
   --text-secondary: #57606a;
   --text-muted: #8c959f;
-  
+
   --accent-claude: #cf222e;
   --accent-codex: #0969da;
   --accent-copilot: #8250df;
@@ -196,4 +196,33 @@ html, body, #root {
 .update-banner-close:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+}
+
+/* Zoom level indicator */
+.zoom-indicator {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 9999;
+  pointer-events: none;
+  animation: zoomIndicatorIn 0.12s ease-out, zoomIndicatorOut 0.25s ease-in 1.25s forwards;
+}
+
+@keyframes zoomIndicatorIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes zoomIndicatorOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }

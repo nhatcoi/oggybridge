@@ -2,8 +2,9 @@ import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { FolderOpen, X } from "../overview/Icons";
-import { WorkspaceInfo } from "../App";
-import "./WorkspaceBar.css";
+import { WorkspaceInfo } from "../types";
+import { shortPath } from "../utils";
+import "../styles/WorkspaceBar.css";
 
 interface Props {
   workspace: WorkspaceInfo | null;
@@ -50,11 +51,7 @@ export default function WorkspaceBar({ workspace, onOpen, onClose }: Props) {
       ) : (
         <>
           <span className="ws-hint">No workspace open</span>
-          <button
-            className="ws-btn ws-btn-open"
-            onClick={handleOpen}
-            disabled={loading}
-          >
+          <button className="ws-btn ws-btn-open" onClick={handleOpen} disabled={loading}>
             {loading ? "Opening…" : "Open Workspace"}
           </button>
         </>
@@ -62,11 +59,4 @@ export default function WorkspaceBar({ workspace, onOpen, onClose }: Props) {
       {error && <span className="ws-error">{error}</span>}
     </div>
   );
-}
-
-function shortPath(p: string): string {
-  const home = "/home/";
-  const idx = p.indexOf(home);
-  if (idx !== -1) return "~/" + p.slice(idx + home.length).split("/").slice(1).join("/") || p.split("/").pop() || p;
-  return p.split("/").pop() || p;
 }

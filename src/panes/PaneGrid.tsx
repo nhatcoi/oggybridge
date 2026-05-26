@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Columns, X, Folder } from "../overview/Icons";
-import { AgentPane, AGENTS, WorkspaceInfo } from "../App";
+import { AgentPane, WorkspaceInfo } from "../types";
+import { AGENTS } from "../agents";
+import { shortPath } from "../utils";
 import TerminalPane from "./TerminalPane";
 import AgentLauncher from "./AgentLauncher";
-import "./PaneGrid.css";
+import "../styles/PaneGrid.css";
 
 interface Props {
   panes: AgentPane[];
@@ -34,7 +36,6 @@ export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPa
   const [ratios, setRatios] = useState<Record<string, number>>({});
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Keep ratios in sync as panes are added/removed
   useEffect(() => {
     setRatios((prev) => {
       const next: Record<string, number> = {};
@@ -99,10 +100,7 @@ export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPa
                       <button
                         className="pane-action-btn close"
                         onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onClose(pane.id);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); onClose(pane.id); }}
                         title="Close pane"
                       >
                         <X size={12} />
@@ -175,9 +173,4 @@ function Divider({ leftId, rightId, ratios, containerRef, setRatios }: DividerPr
   };
 
   return <div className="pane-divider" onPointerDown={onPointerDown} />;
-}
-
-function shortPath(p: string): string {
-  const parts = p.replace(/\\/g, "/").split("/");
-  return parts.length > 2 ? `…/${parts.slice(-2).join("/")}` : p;
 }

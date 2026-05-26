@@ -9,6 +9,7 @@ import { useWorkspace } from "./hooks/useWorkspace";
 import { useUpdater } from "./hooks/useUpdater";
 import { useZoom } from "./hooks/useZoom";
 import { AgentPane } from "./types";
+import { matchesBinding, formatBinding } from "./utils";
 import PaneGrid from "./panes/PaneGrid";
 import Sidebar from "./overview/Sidebar";
 import WorkspaceBar from "./workspace/WorkspaceBar";
@@ -27,7 +28,11 @@ export default function App() {
   const { settings, saveSettings } = useSettings();
   const { workspace, hookEvents, recentWorkspaces, openWorkspace, closeWorkspace, handleWorkspaceOpened } = useWorkspace();
   const { updateAvailable, updating, applyUpdate, dismissUpdate } = useUpdater();
-  const { zoomLevel, zoomIn, zoomOut, zoomReset, showIndicator } = useZoom();
+
+  const saveZoom = useCallback((level: number) => {
+    saveSettings({ ...settings, zoomLevel: level });
+  }, [settings, saveSettings]);
+  const { zoomIn, zoomOut, zoomReset, showIndicator } = useZoom(settings.zoomLevel, saveZoom);
 
   const addPane = useCallback((agentId: string) => {
     paneCounter.current += 1;
@@ -49,32 +54,35 @@ export default function App() {
   }, [openWorkspace]);
 
   useEffect(() => {
+    const kb = settings.keybindings;
     const handleKeyDown = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey;
-      if (mod && e.key === "k") { e.preventDefault(); setPaletteOpen((p) => !p); }
-      else if (mod && e.key === "o") { e.preventDefault(); handleSelectWorkspaceDialog(); }
-      else if (mod && e.key === "w" && panes.length > 0) { e.preventDefault(); removePane(panes[panes.length - 1].id); }
-      else if (mod && (e.key === "=" || e.key === "+")) { e.preventDefault(); zoomIn(); }
-      else if (mod && e.key === "-") { e.preventDefault(); zoomOut(); }
-      else if (mod && e.key === "0") { e.preventDefault(); zoomReset(); }
+      if (matchesBinding(e, kb.toggleCommandPalette)) { e.preventDefault(); setPaletteOpen((p) => !p); }
+      else if (matchesBinding(e, kb.openWorkspace)) { e.preventDefault(); handleSelectWorkspaceDialog(); }
+      else if (matchesBinding(e, kb.closeLastPane) && panes.length > 0) { e.preventDefault(); removePane(panes[panes.length - 1].id); }
+      else if (matchesBinding(e, kb.zoomIn) || (e.key === "+" && (e.metaKey || e.ctrlKey))) { e.preventDefault(); zoomIn(); }
+      else if (matchesBinding(e, kb.zoomOut)) { e.preventDefault(); zoomOut(); }
+      else if (matchesBinding(e, kb.zoomReset)) { e.preventDefault(); zoomReset(); }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [panes, handleSelectWorkspaceDialog, removePane, zoomIn, zoomOut, zoomReset]);
+  }, [panes, settings.keybindings, handleSelectWorkspaceDialog, removePane, zoomIn, zoomOut, zoomReset]);
 
-  const commands: Command[] = useMemo(() => [
-    { id: "open-workspace",    label: "Open Workspace",            category: "Workspace", icon: <FolderOpen size={16} />, shortcut: "⌘O",  action: handleSelectWorkspaceDialog },
-    { id: "close-workspace",   label: "Close Current Workspace",   category: "Workspace", icon: <X size={16} />,                           action: closeWorkspace },
-    { id: "toggle-settings",   label: "Toggle Settings",           category: "General",   icon: <Settings size={16} />,                    action: () => setSettingsOpen((p) => !p) },
-    { id: "zoom-in",           label: "Zoom In",                   category: "View",      icon: <ZoomIn size={16} />,    shortcut: "⌘+",   action: zoomIn },
-    { id: "zoom-out",          label: "Zoom Out",                  category: "View",      icon: <ZoomOut size={16} />,   shortcut: "⌘-",   action: zoomOut },
-    { id: "zoom-reset",        label: "Reset Zoom",                category: "View",      icon: <ZoomIn size={16} />,    shortcut: "⌘0",   action: zoomReset },
-    { id: "launch-claude",     label: "Launch Claude Code",        category: "Agents",    icon: <Bot size={16} />,                         action: () => addPane("claude-code") },
-    { id: "launch-codex",      label: "Launch Codex CLI",          category: "Agents",    icon: <Zap size={16} />,                         action: () => addPane("codex") },
-    { id: "launch-copilot",    label: "Launch GitHub Copilot CLI", category: "Agents",    icon: <Github size={16} />,                      action: () => addPane("copilot") },
-    { id: "launch-antigravity",label: "Launch Antigravity CLI",    category: "Agents",    icon: <Compass size={16} />,                     action: () => addPane("antigravity") },
-    { id: "launch-shell",      label: "Launch System Shell",       category: "Agents",    icon: <Terminal size={16} />,                    action: () => addPane("shell") },
-  ], [handleSelectWorkspaceDialog, closeWorkspace, addPane, zoomIn, zoomOut, zoomReset]);
+  const commands: Command[] = useMemo(() => {
+    const kb = settings.keybindings;
+    return [
+      { id: "open-workspace",    label: "Open Workspace",            category: "Workspace", icon: <FolderOpen size={16} />, shortcut: formatBinding(kb.openWorkspace),        action: handleSelectWorkspaceDialog },
+      { id: "close-workspace",   label: "Close Current Workspace",   category: "Workspace", icon: <X size={16} />,                                                            action: closeWorkspace },
+      { id: "toggle-settings",   label: "Toggle Settings",           category: "General",   icon: <Settings size={16} />,                                                     action: () => setSettingsOpen((p) => !p) },
+      { id: "zoom-in",           label: "Zoom In",                   category: "View",      icon: <ZoomIn size={16} />,    shortcut: formatBinding(kb.zoomIn),               action: zoomIn },
+      { id: "zoom-out",          label: "Zoom Out",                  category: "View",      icon: <ZoomOut size={16} />,   shortcut: formatBinding(kb.zoomOut),              action: zoomOut },
+      { id: "zoom-reset",        label: "Reset Zoom",                category: "View",      icon: <ZoomIn size={16} />,    shortcut: formatBinding(kb.zoomReset),            action: zoomReset },
+      { id: "launch-claude",     label: "Launch Claude Code",        category: "Agents",    icon: <Bot size={16} />,                                                          action: () => addPane("claude-code") },
+      { id: "launch-codex",      label: "Launch Codex CLI",          category: "Agents",    icon: <Zap size={16} />,                                                          action: () => addPane("codex") },
+      { id: "launch-copilot",    label: "Launch GitHub Copilot CLI", category: "Agents",    icon: <Github size={16} />,                                                       action: () => addPane("copilot") },
+      { id: "launch-antigravity",label: "Launch Antigravity CLI",    category: "Agents",    icon: <Compass size={16} />,                                                      action: () => addPane("antigravity") },
+      { id: "launch-shell",      label: "Launch System Shell",       category: "Agents",    icon: <Terminal size={16} />,                                                     action: () => addPane("shell") },
+    ];
+  }, [settings.keybindings, handleSelectWorkspaceDialog, closeWorkspace, addPane, zoomIn, zoomOut, zoomReset]);
 
   const visibleAgents = useMemo(
     () => AGENTS.filter((a) => settings.enabledAgents.includes(a.id)),
@@ -128,7 +136,7 @@ export default function App() {
 
       {showIndicator && (
         <div className="zoom-indicator">
-          {Math.round(zoomLevel * 100)}%
+          {Math.round(settings.zoomLevel * 100)}%
         </div>
       )}
 

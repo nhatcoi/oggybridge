@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { AppSettings, DEFAULT_SETTINGS } from "../types";
+import { AppSettings, DEFAULT_SETTINGS, DEFAULT_KEYBINDINGS } from "../types";
 
 const COLOR_MAP: Record<AppSettings["accentColor"], string> = {
   blue:    "#58a6ff",
@@ -40,7 +40,12 @@ export function useSettings() {
     invoke<string>("read_settings")
       .then((raw) => {
         try {
-          const loaded = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+          const parsed = JSON.parse(raw);
+          const loaded: AppSettings = {
+            ...DEFAULT_SETTINGS,
+            ...parsed,
+            keybindings: { ...DEFAULT_KEYBINDINGS, ...(parsed.keybindings ?? {}) },
+          };
           setSettings(loaded);
           applySettings(loaded);
         } catch {}

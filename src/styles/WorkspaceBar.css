@@ -6,11 +6,12 @@
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
-  height: 48px;
+  height: 40px;
 }
 
 .ws-icon {
-  font-size: 14px;
+  flex-shrink: 0;
+  color: var(--text-secondary);
 }
 
 .ws-path {
@@ -33,13 +34,14 @@
 .ws-btn {
   font-size: 12px;
   font-weight: 600;
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 6px;
   cursor: pointer;
   border: 1px solid transparent;
   white-space: nowrap;
   flex-shrink: 0;
   transition: all 0.15s ease;
+  font-family: var(--font-sans);
 }
 
 .ws-btn-open {
@@ -62,6 +64,9 @@
   background: var(--bg-tertiary);
   border-color: var(--border-color);
   color: var(--text-secondary);
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
 }
 
 .ws-btn-close:hover {

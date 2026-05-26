@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-const ZOOM_STEP = 0.1;
-const ZOOM_MIN = 0.5;
-const ZOOM_MAX = 2.0;
-const ZOOM_DEFAULT = 1.0;
-const STORAGE_KEY = "zoomLevel";
+export const ZOOM_STEP = 0.1;
+export const ZOOM_MIN  = 0.5;
+export const ZOOM_MAX  = 2.0;
+export const ZOOM_DEFAULT = 1.0;
 
-function clamp(v: number): number {
+export function clampZoom(v: number): number {
   return Math.round(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, v)) * 10) / 10;
 }
 
@@ -18,41 +17,28 @@ async function applyZoom(level: number) {
       return;
     } catch {}
   }
-  // Fallback for browser dev mode
   (document.body.style as any).zoom = String(level);
 }
 
-export function useZoom() {
-  const [zoomLevel, setZoomLevel] = useState<number>(() => {
-    try {
-      const s = localStorage.getItem(STORAGE_KEY);
-      return s ? clamp(parseFloat(s)) : ZOOM_DEFAULT;
-    } catch {
-      return ZOOM_DEFAULT;
-    }
-  });
-
+export function useZoom(zoomLevel: number, onSave: (level: number) => void) {
   const [showIndicator, setShowIndicator] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     applyZoom(zoomLevel);
-  }, []);
+  }, [zoomLevel]);
 
-  const setZoom = useCallback(async (level: number) => {
-    const next = clamp(level);
-    setZoomLevel(next);
-    localStorage.setItem(STORAGE_KEY, String(next));
-    await applyZoom(next);
-
+  const changeZoom = useCallback((next: number) => {
+    const clamped = clampZoom(next);
+    onSave(clamped);
     setShowIndicator(true);
     if (hideTimer.current) clearTimeout(hideTimer.current);
     hideTimer.current = setTimeout(() => setShowIndicator(false), 1500);
-  }, []);
+  }, [onSave]);
 
-  const zoomIn    = useCallback(() => setZoom(zoomLevel + ZOOM_STEP), [zoomLevel, setZoom]);
-  const zoomOut   = useCallback(() => setZoom(zoomLevel - ZOOM_STEP), [zoomLevel, setZoom]);
-  const zoomReset = useCallback(() => setZoom(ZOOM_DEFAULT),           [setZoom]);
+  const zoomIn    = useCallback(() => changeZoom(zoomLevel + ZOOM_STEP), [zoomLevel, changeZoom]);
+  const zoomOut   = useCallback(() => changeZoom(zoomLevel - ZOOM_STEP), [zoomLevel, changeZoom]);
+  const zoomReset = useCallback(() => changeZoom(ZOOM_DEFAULT),           [changeZoom]);
 
-  return { zoomLevel, zoomIn, zoomOut, zoomReset, showIndicator };
+  return { zoomIn, zoomOut, zoomReset, showIndicator };
 }

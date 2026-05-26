@@ -339,3 +339,158 @@ input:checked + .settings-slider:before {
   color: var(--text-secondary);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
+
+/* Zoom level control */
+.settings-zoom-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-zoom-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 300;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s ease;
+  font-family: var(--font-sans);
+  flex-shrink: 0;
+}
+
+.settings-zoom-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-focus);
+  color: var(--accent-primary);
+}
+
+.settings-zoom-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.settings-zoom-value {
+  min-width: 52px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.settings-zoom-reset {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  font-family: var(--font-sans);
+  margin-left: 4px;
+}
+
+.settings-zoom-reset:hover {
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+/* Keybinding rows */
+.settings-keybindings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-kb-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  transition: border-color 0.15s ease;
+}
+
+.settings-kb-row:hover {
+  border-color: var(--border-focus);
+}
+
+.settings-kb-label {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.settings-kb-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-kb-shortcut {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  min-width: 80px;
+  text-align: center;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.settings-kb-shortcut:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  background: var(--bg-hover);
+}
+
+.settings-kb-shortcut.recording {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  background: rgba(88, 166, 255, 0.08);
+  animation: recordingPulse 1s ease-in-out infinite;
+}
+
+@keyframes recordingPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(88, 166, 255, 0.3); }
+  50%       { box-shadow: 0 0 0 4px rgba(88, 166, 255, 0); }
+}
+
+.settings-kb-reset {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 15px;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s ease;
+  padding: 0;
+}
+
+.settings-kb-reset:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}

@@ -483,4 +483,3 @@ export const ZoomOut = ({ size = 24, ...props }: IconProps) => (
     <line x1="8" y1="11" x2="14" y2="11" />
   </svg>
 );
-

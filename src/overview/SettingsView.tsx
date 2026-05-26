@@ -1,7 +1,9 @@
 import { X, Sliders, Palette, Terminal, Layout, Bot, Keyboard, Cpu } from "./Icons";
-import { AppSettings } from "../types";
+import { AppSettings, ActionId, ACTION_LABELS, DEFAULT_KEYBINDINGS, Keybinding } from "../types";
+import { clampZoom, ZOOM_STEP, ZOOM_DEFAULT, ZOOM_MIN, ZOOM_MAX } from "../hooks/useZoom";
+import { formatBinding } from "../utils";
 import "../styles/SettingsView.css";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface Props {
   isOpen: boolean;
@@ -30,11 +32,11 @@ const tabIcons: Record<Tab, React.ComponentType<{ size?: number | string; classN
 };
 
 const ALL_TABS: Tab[] = ["general", "appearance", "terminal", "layout", "agents", "keybindings", "advanced"];
+const ACTION_IDS = Object.keys(ACTION_LABELS) as ActionId[];
 
 export default function SettingsView({ isOpen, onClose, settings, onSaveSettings }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("general");
-
-  if (!isOpen) return null;
+  const [recordingAction, setRecordingAction] = useState<ActionId | null>(null);
 
   const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     onSaveSettings({ ...settings, [key]: value });
@@ -46,6 +48,42 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
       : [...settings.enabledAgents, agentId];
     updateSetting("enabledAgents", next);
   };
+
+  const saveBinding = useCallback((action: ActionId, binding: Keybinding) => {
+    onSaveSettings({
+      ...settings,
+      keybindings: { ...settings.keybindings, [action]: binding },
+    });
+  }, [settings, onSaveSettings]);
+
+  const resetBinding = (action: ActionId) => {
+    saveBinding(action, DEFAULT_KEYBINDINGS[action]);
+  };
+
+  // Capture keydown when recording
+  useEffect(() => {
+    if (!recordingAction) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === "Escape") { setRecordingAction(null); return; }
+      if (["Meta", "Control", "Shift", "Alt"].includes(e.key)) return;
+      saveBinding(recordingAction, {
+        key:   e.key,
+        mod:   e.metaKey || e.ctrlKey,
+        shift: e.shiftKey || undefined,
+        alt:   e.altKey || undefined,
+      });
+      setRecordingAction(null);
+    };
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [recordingAction, saveBinding]);
+
+  // Cancel recording when switching tabs or closing
+  useEffect(() => { setRecordingAction(null); }, [activeTab, isOpen]);
+
+  if (!isOpen) return null;
 
   const renderContent = () => {
     switch (activeTab) {
@@ -106,6 +144,26 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
                 ))}
               </div>
             </div>
+            <div className="settings-form-group">
+              <label className="settings-label">Zoom Level</label>
+              <div className="settings-zoom-row">
+                <button
+                  className="settings-zoom-btn"
+                  onClick={() => updateSetting("zoomLevel", clampZoom(settings.zoomLevel - ZOOM_STEP))}
+                  disabled={settings.zoomLevel <= ZOOM_MIN}
+                >−</button>
+                <span className="settings-zoom-value">{Math.round(settings.zoomLevel * 100)}%</span>
+                <button
+                  className="settings-zoom-btn"
+                  onClick={() => updateSetting("zoomLevel", clampZoom(settings.zoomLevel + ZOOM_STEP))}
+                  disabled={settings.zoomLevel >= ZOOM_MAX}
+                >+</button>
+                {settings.zoomLevel !== ZOOM_DEFAULT && (
+                  <button className="settings-zoom-reset" onClick={() => updateSetting("zoomLevel", ZOOM_DEFAULT)}>Reset</button>
+                )}
+              </div>
+              <p className="settings-help-text">Scales the entire application window. Range: {ZOOM_MIN * 100}%–{ZOOM_MAX * 100}%. Shortcut: ⌘+ / ⌘−</p>
+            </div>
           </>
         );
       case "terminal":
@@ -162,35 +220,40 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
               <option value="4">4 Panes</option>
               <option value="6">6 Panes</option>
             </select>
-            <p className="settings-help-text">
-              Controls the grid organization when multiple agent terminals are launched.
-            </p>
+            <p className="settings-help-text">Controls the grid organization when multiple agent terminals are launched.</p>
           </div>
         );
       case "keybindings":
         return (
-          <table className="settings-keybindings-table">
-            <thead>
-              <tr><th>Action</th><th>Shortcut</th></tr>
-            </thead>
-            <tbody>
-              {[
-                ["Open Command Palette",   "⌘K", "Ctrl+K"],
-                ["Open Workspace",         "⌘O", "Ctrl+O"],
-                ["Split Pane Vertically",  "⌘\\","Ctrl+\\"],
-                ["Split Pane Horizontally","⌘-", "Ctrl+-"],
-                ["Close Focused Pane",     "⌘W", "Ctrl+W"],
-              ].map(([action, mac, win]) => (
-                <tr key={action}>
-                  <td>{action}</td>
-                  <td>
-                    <span className="settings-keybindings-kbd">{mac}</span>{" "}or{" "}
-                    <span className="settings-keybindings-kbd">{win}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="settings-keybindings-list">
+            <p className="settings-help-text" style={{ marginBottom: 16 }}>
+              Click a shortcut to record a new one. Press <kbd className="settings-keybindings-kbd">Esc</kbd> to cancel.
+            </p>
+            {ACTION_IDS.map((action) => {
+              const binding = settings.keybindings[action];
+              const isDefault = JSON.stringify(binding) === JSON.stringify(DEFAULT_KEYBINDINGS[action]);
+              const isRecording = recordingAction === action;
+              return (
+                <div key={action} className="settings-kb-row">
+                  <span className="settings-kb-label">{ACTION_LABELS[action]}</span>
+                  <div className="settings-kb-controls">
+                    <button
+                      className={`settings-kb-shortcut ${isRecording ? "recording" : ""}`}
+                      onClick={() => setRecordingAction(isRecording ? null : action)}
+                      title={isRecording ? "Press a key combo (Esc to cancel)" : "Click to change"}
+                    >
+                      {isRecording ? "Press shortcut…" : formatBinding(binding)}
+                    </button>
+                    {!isDefault && (
+                      <button className="settings-kb-reset" onClick={() => resetBinding(action)} title="Reset to default">
+                        ↺
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         );
       case "advanced":
         return (

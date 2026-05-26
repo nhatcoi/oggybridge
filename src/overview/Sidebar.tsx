@@ -1,5 +1,5 @@
 import {
-  Bot, Search, Folder, FolderOpen, Activity, AlertTriangle, Settings, CheckSquare, X,
+  Bot, Search, Folder, FolderOpen, Activity, AlertTriangle, Settings, CheckSquare, X, Code,
 } from "./Icons";
 import { AgentPane, HookEvent, WorkspaceInfo } from "../types";
 import { AGENT_ICONS } from "../agents";
@@ -26,10 +26,12 @@ interface Props {
   onSelectWorkspace: (path: string) => void;
   onToggleSettings: () => void;
   onToggleCommandPalette: () => void;
+  activeView: SidebarView | null;
+  onActiveViewChange: (view: SidebarView | null) => void;
   t: Translator;
 }
 
-export type SidebarView = "explorer" | "tasks" | "agents" | "activity";
+export type SidebarView = "explorer" | "tasks" | "editor" | "agents" | "activity";
 
 export default function Sidebar({
   agents,
@@ -41,9 +43,11 @@ export default function Sidebar({
   onSelectWorkspace,
   onToggleSettings,
   onToggleCommandPalette,
+  activeView,
+  onActiveViewChange,
   t,
 }: Props) {
-  const [activeView, setActiveView] = useState<SidebarView | null>("explorer");
+  const hasSidebarPanel = activeView !== null && activeView !== "editor";
   const [isLogoOpen, setIsLogoOpen] = useState(false);
 
   const hasConflict = hookEvents.length >= 2 && (() => {
@@ -59,11 +63,11 @@ export default function Sidebar({
   const conflictFile = hasConflict && hookEvents[0].files[0] ? shortPath(hookEvents[0].files[0]) : null;
 
   const handleTabClick = (view: SidebarView) => {
-    setActiveView((prev) => (prev === view ? null : view));
+    onActiveViewChange(activeView === view ? null : view);
   };
 
   return (
-    <aside className={`sidebar-container ${activeView ? "expanded" : "collapsed"}`}>
+    <aside className={`sidebar-container ${hasSidebarPanel ? "expanded" : "collapsed"}`}>
       {/* 1. Activity Bar */}
       <div className="activity-bar">
         <div className="activity-bar-top">
@@ -86,6 +90,14 @@ export default function Sidebar({
           >
             <CheckSquare size={20} />
             {workspace && <span className="tab-badge-dot"></span>}
+          </button>
+
+          <button
+            className={`activity-tab-btn ${activeView === "editor" ? "active" : ""}`}
+            onClick={() => handleTabClick("editor")}
+            title={t("sidebar.editorTitle")}
+          >
+            <Code size={20} />
           </button>
 
           <button
@@ -121,7 +133,7 @@ export default function Sidebar({
       </div>
 
       {/* 2. Sidebar Panel */}
-      {activeView && (
+      {hasSidebarPanel && (
         <div className="sidebar-panel">
           <div className="sidebar-panel-header">
             <h2>

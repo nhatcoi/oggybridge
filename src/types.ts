@@ -63,6 +63,17 @@ export const DEFAULT_KEYBINDINGS: Keybindings = {
   zoomReset:            { mod: true, key: "0" },
 };
 
+export interface AgentConfig {
+  extraArgs: string;
+}
+
+export interface CustomAgentDef {
+  id: string;
+  label: string;
+  cmd: string;
+  extraArgs: string;
+}
+
 export interface AppSettings {
   locale: "en" | "vi";
   theme: "dark" | "light" | "system";
@@ -78,6 +89,8 @@ export interface AppSettings {
   maxPerRow: number;
   zoomLevel: number;
   keybindings: Keybindings;
+  agentConfigs: Record<string, AgentConfig>;
+  customAgents: CustomAgentDef[];
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -95,4 +108,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   maxPerRow: 2,
   zoomLevel: 1.0,
   keybindings: DEFAULT_KEYBINDINGS,
+  agentConfigs: {},
+  customAgents: [],
 };

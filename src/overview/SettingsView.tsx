@@ -1,9 +1,9 @@
 import { X, Sliders, Palette, Terminal, Layout, Bot, Keyboard, Cpu } from "./Icons";
 import { invoke } from "@tauri-apps/api/core";
-import { AppSettings, ActionId, ACTION_LABELS, DEFAULT_KEYBINDINGS, Keybinding } from "../types";
+import { AppSettings, ActionId, ACTION_LABELS, DEFAULT_KEYBINDINGS, Keybinding, CustomAgentDef } from "../types";
 import { clampZoom, ZOOM_STEP, ZOOM_DEFAULT, ZOOM_MIN, ZOOM_MAX } from "../hooks/useZoom";
 import { formatBinding } from "../utils";
-import { LOCALE_OPTIONS, Translator, actionLabelKey, interpolate } from "../i18n";
+import { LOCALE_OPTIONS, Translator, actionLabelKey } from "../i18n";
 import "../styles/SettingsView.css";
 import { useState, useEffect, useCallback } from "react";
 
@@ -55,11 +55,22 @@ const AGENT_NAMES: Record<string, string> = {
   antigravity:   "Antigravity",
 };
 
+const AGENT_FLAG_TEMPLATES: Record<string, string[]> = {
+  "claude-code": ["--dangerously-skip-permissions"],
+  "codex":       ["--dangerously-bypass-approvals-and-sandbox"],
+  "antigravity": ["--dangerously-skip-permissions"],
+};
+
+type CustomForm = { label: string; cmd: string; extraArgs: string };
+
 export default function SettingsView({ isOpen, onClose, settings, onSaveSettings, t }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("general");
   const [recordingAction, setRecordingAction] = useState<ActionId | null>(null);
   const [configPaths, setConfigPaths] = useState<ConfigPaths | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
+  const [newCustom, setNewCustom] = useState<CustomForm | null>(null);
+  const [editCustomId, setEditCustomId] = useState<string | null>(null);
+  const [editCustom, setEditCustom] = useState<CustomForm | null>(null);
 
   const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     onSaveSettings({ ...settings, [key]: value });
@@ -70,6 +81,59 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
       ? settings.enabledAgents.filter((id) => id !== agentId)
       : [...settings.enabledAgents, agentId];
     updateSetting("enabledAgents", next);
+  };
+
+  const updateAgentConfig = (agentId: string, extraArgs: string) => {
+    onSaveSettings({
+      ...settings,
+      agentConfigs: { ...settings.agentConfigs, [agentId]: { extraArgs } },
+    });
+  };
+
+  const hasFlag = (agentId: string, flag: string) =>
+    (settings.agentConfigs[agentId]?.extraArgs ?? "").split(/\s+/).includes(flag);
+
+  const toggleFlag = (agentId: string, flag: string) => {
+    const flags = (settings.agentConfigs[agentId]?.extraArgs ?? "").split(/\s+/).filter(Boolean);
+    updateAgentConfig(agentId, (flags.includes(flag) ? flags.filter((f) => f !== flag) : [...flags, flag]).join(" "));
+  };
+
+  const addCustomAgent = () => {
+    if (!newCustom?.label.trim() || !newCustom?.cmd.trim()) return;
+    const agent: CustomAgentDef = {
+      id: crypto.randomUUID(),
+      label: newCustom.label.trim(),
+      cmd: newCustom.cmd.trim(),
+      extraArgs: newCustom.extraArgs.trim(),
+    };
+    onSaveSettings({
+      ...settings,
+      customAgents: [...settings.customAgents, agent],
+      enabledAgents: [...settings.enabledAgents, agent.id],
+    });
+    setNewCustom(null);
+  };
+
+  const deleteCustomAgent = (id: string) => {
+    onSaveSettings({
+      ...settings,
+      customAgents: settings.customAgents.filter((a) => a.id !== id),
+      enabledAgents: settings.enabledAgents.filter((eid) => eid !== id),
+    });
+  };
+
+  const saveEditCustomAgent = () => {
+    if (!editCustom || !editCustomId) return;
+    onSaveSettings({
+      ...settings,
+      customAgents: settings.customAgents.map((a) =>
+        a.id === editCustomId
+          ? { ...a, label: editCustom.label.trim(), cmd: editCustom.cmd.trim(), extraArgs: editCustom.extraArgs.trim() }
+          : a
+      ),
+    });
+    setEditCustomId(null);
+    setEditCustom(null);
   };
 
   const saveBinding = useCallback((action: ActionId, binding: Keybinding) => {
@@ -263,17 +327,94 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
       case "agents":
         return (
           <>
-            {(["claude-code", "codex", "copilot", "antigravity"] as const).map((id) => (
-              <div key={id} className="settings-toggle-row">
-                <span className="settings-toggle-label">
-                  {interpolate(t("settings.agents.enable"), { agent: AGENT_NAMES[id] })}
-                </span>
-                <label className="settings-toggle">
-                  <input type="checkbox" checked={settings.enabledAgents.includes(id)} onChange={() => toggleAgent(id)} />
-                  <span className="settings-slider"></span>
-                </label>
+            {(["claude-code", "codex", "copilot", "antigravity", "shell"] as const).map((id) => {
+              const templates = AGENT_FLAG_TEMPLATES[id];
+              return (
+                <div key={id} className="settings-agent-card">
+                  <div className="settings-toggle-row" style={{ marginBottom: 0 }}>
+                    <span className="settings-toggle-label">{AGENT_NAMES[id] ?? id}</span>
+                    <label className="settings-toggle">
+                      <input type="checkbox" checked={settings.enabledAgents.includes(id)} onChange={() => toggleAgent(id)} />
+                      <span className="settings-slider"></span>
+                    </label>
+                  </div>
+                  {id !== "shell" && (
+                    <div className="settings-agent-args">
+                      <input
+                        type="text"
+                        className="settings-agent-input"
+                        value={settings.agentConfigs[id]?.extraArgs ?? ""}
+                        onChange={(e) => updateAgentConfig(id, e.target.value)}
+                        placeholder={t("settings.agents.extraArgsPlaceholder")}
+                      />
+                      {templates && (
+                        <div className="settings-agent-templates">
+                          {templates.map((flag) => (
+                            <button
+                              key={flag}
+                              className={`settings-template-chip${hasFlag(id, flag) ? " active" : ""}`}
+                              onClick={() => toggleFlag(id, flag)}
+                              title={flag}
+                            >
+                              {t("settings.agents.templateAutoApproval")}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <div className="settings-section-label">{t("settings.agents.customSection")}</div>
+
+            {settings.customAgents.map((agent) => (
+              <div key={agent.id} className="settings-agent-card">
+                {editCustomId === agent.id ? (
+                  <div className="settings-custom-form">
+                    <input className="settings-agent-input" value={editCustom?.label ?? ""} onChange={(e) => setEditCustom({ ...editCustom!, label: e.target.value })} placeholder={t("settings.agents.customLabelPlaceholder")} />
+                    <input className="settings-agent-input" value={editCustom?.cmd ?? ""} onChange={(e) => setEditCustom({ ...editCustom!, cmd: e.target.value })} placeholder={t("settings.agents.customCmdPlaceholder")} />
+                    <input className="settings-agent-input" value={editCustom?.extraArgs ?? ""} onChange={(e) => setEditCustom({ ...editCustom!, extraArgs: e.target.value })} placeholder={t("settings.agents.customExtraArgsPlaceholder")} />
+                    <div className="settings-custom-form-actions">
+                      <button className="settings-action-btn" onClick={saveEditCustomAgent} disabled={!editCustom?.label.trim() || !editCustom?.cmd.trim()}>{t("settings.agents.save")}</button>
+                      <button className="settings-action-btn" onClick={() => { setEditCustomId(null); setEditCustom(null); }}>{t("settings.agents.cancel")}</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="settings-custom-agent-row">
+                    <div className="settings-custom-agent-info">
+                      <span className="settings-toggle-label">{agent.label}</span>
+                      <code className="settings-custom-agent-cmd">{agent.cmd}{agent.extraArgs ? " " + agent.extraArgs : ""}</code>
+                    </div>
+                    <div className="settings-custom-agent-actions">
+                      <label className="settings-toggle" style={{ marginRight: 4 }}>
+                        <input type="checkbox" checked={settings.enabledAgents.includes(agent.id)} onChange={() => toggleAgent(agent.id)} />
+                        <span className="settings-slider"></span>
+                      </label>
+                      <button className="settings-icon-btn" onClick={() => { setEditCustomId(agent.id); setEditCustom({ label: agent.label, cmd: agent.cmd, extraArgs: agent.extraArgs }); }} title="Edit">✎</button>
+                      <button className="settings-icon-btn danger" onClick={() => deleteCustomAgent(agent.id)} title="Delete">✕</button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
+
+            {newCustom !== null ? (
+              <div className="settings-agent-card settings-custom-form">
+                <input className="settings-agent-input" value={newCustom.label} onChange={(e) => setNewCustom({ ...newCustom, label: e.target.value })} placeholder={t("settings.agents.customLabelPlaceholder")} />
+                <input className="settings-agent-input" value={newCustom.cmd} onChange={(e) => setNewCustom({ ...newCustom, cmd: e.target.value })} placeholder={t("settings.agents.customCmdPlaceholder")} />
+                <input className="settings-agent-input" value={newCustom.extraArgs} onChange={(e) => setNewCustom({ ...newCustom, extraArgs: e.target.value })} placeholder={t("settings.agents.customExtraArgsPlaceholder")} />
+                <div className="settings-custom-form-actions">
+                  <button className="settings-action-btn" onClick={addCustomAgent} disabled={!newCustom.label.trim() || !newCustom.cmd.trim()}>{t("settings.agents.add")}</button>
+                  <button className="settings-action-btn" onClick={() => setNewCustom(null)}>{t("settings.agents.cancel")}</button>
+                </div>
+              </div>
+            ) : (
+              <button className="settings-action-btn" style={{ marginTop: 4 }} onClick={() => setNewCustom({ label: "", cmd: "", extraArgs: "" })}>
+                {t("settings.agents.addCustom")}
+              </button>
+            )}
           </>
         );
       case "layout":

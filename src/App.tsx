@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent } from "react";
 import { open as openDirDialog, ask } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
@@ -20,7 +20,8 @@ import {
 } from "./sessionStorage";
 import { matchesBinding, formatBinding } from "./utils";
 import PaneGrid from "./panes/PaneGrid";
-import Sidebar from "./overview/Sidebar";
+import Sidebar, { SidebarView } from "./overview/Sidebar";
+import EditorWorkspace from "./editor/EditorWorkspace";
 import WorkspaceBar from "./workspace/WorkspaceBar";
 import SettingsView from "./overview/SettingsView";
 import CommandPalette, { Command } from "./overview/CommandPalette";
@@ -30,16 +31,16 @@ function makeDefaultPanes(): AgentPane[] {
   return [{ id: "pane-0", paneId: crypto.randomUUID(), agentId: "shell", label: "Shell" }];
 }
 
-function createPane(agentId: string, index: number): AgentPane {
-  const agent = AGENTS.find((a) => a.id === agentId) ?? AGENTS[AGENTS.length - 1];
-  return { id: `pane-${index}`, paneId: crypto.randomUUID(), agentId: agent.id, label: agent.label };
-}
 
 export default function App() {
   const paneCounter = useRef(0);
+  const editorPaneRef = useRef<HTMLDivElement>(null);
   const [panes, setPanes] = useState<AgentPane[]>(makeDefaultPanes);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [activeSidebarView, setActiveSidebarView] = useState<SidebarView | null>("explorer");
+  const [editorLayout, setEditorLayout] = useState<"side" | "fullscreen">("side");
+  const [editorWidth, setEditorWidth] = useState(640);
 
   const { settings, saveSettings, ready: settingsReady } = useSettings();
   const t = useMemo(() => createTranslator(settings.locale), [settings.locale]);
@@ -62,9 +63,12 @@ export default function App() {
 
   const addPane = useCallback((agentId: string) => {
     paneCounter.current += 1;
+    const builtIn = AGENTS.find((a) => a.id === agentId);
+    const custom = settingsRef.current.customAgents.find((a) => a.id === agentId);
+    const label = builtIn?.label ?? custom?.label ?? agentId;
     setPanes((prev) => [
       ...prev,
-      createPane(agentId, paneCounter.current),
+      { id: `pane-${paneCounter.current}`, paneId: crypto.randomUUID(), agentId, label },
     ]);
   }, []);
 
@@ -79,6 +83,24 @@ export default function App() {
         : pane
     )));
   }, []);
+
+  const resizeEditorPane = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = editorPaneRef.current?.offsetWidth ?? editorWidth;
+
+    const onMove = (moveEvent: PointerEvent) => {
+      const nextWidth = startWidth - (moveEvent.clientX - startX);
+      setEditorWidth(Math.min(980, Math.max(420, nextWidth)));
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, [editorWidth]);
 
   const handleSelectWorkspaceDialog = useCallback(async () => {
     if (!("__TAURI_INTERNALS__" in window)) return;
@@ -211,10 +233,13 @@ export default function App() {
     ];
   }, [settings.keybindings, handleSelectWorkspaceDialog, closeWorkspace, addPane, zoomIn, zoomOut, zoomReset, t]);
 
-  const visibleAgents = useMemo(
-    () => AGENTS.filter((a) => settings.enabledAgents.includes(a.id)),
-    [settings.enabledAgents]
-  );
+  const visibleAgents = useMemo(() => {
+    const builtin = AGENTS.filter((a) => settings.enabledAgents.includes(a.id));
+    const custom = settings.customAgents
+      .filter((a) => settings.enabledAgents.includes(a.id))
+      .map(({ id, label, cmd }) => ({ id, label, cmd }));
+    return [...builtin, ...custom];
+  }, [settings.enabledAgents, settings.customAgents]);
 
   return (
     <div className="app-root">
@@ -228,6 +253,8 @@ export default function App() {
         onSelectWorkspace={openWorkspace}
         onToggleSettings={() => setSettingsOpen(true)}
         onToggleCommandPalette={() => setPaletteOpen(true)}
+        activeView={activeSidebarView}
+        onActiveViewChange={setActiveSidebarView}
         t={t}
       />
       <main className="main-area">
@@ -254,15 +281,48 @@ export default function App() {
           onClose={closeWorkspace}
           t={t}
         />
-        <PaneGrid
-          panes={panes}
-          maxPerRow={settings.maxPerRow}
-          workspace={workspace}
-          onClose={removePane}
-          onAddPane={addPane}
-          onPaneSessionId={updatePaneSessionId}
-          t={t}
-        />
+        <div className="main-workbench">
+          <div className="main-panes-area">
+            <PaneGrid
+              panes={panes}
+              maxPerRow={settings.maxPerRow}
+              workspace={workspace}
+              onClose={removePane}
+              onAddPane={addPane}
+              onPaneSessionId={updatePaneSessionId}
+              agentConfigs={settings.agentConfigs}
+              customAgents={settings.customAgents}
+              t={t}
+            />
+          </div>
+          {activeSidebarView === "editor" && editorLayout === "side" && (
+            <>
+              <div className="editor-resize-handle" onPointerDown={resizeEditorPane} />
+              <div
+                ref={editorPaneRef}
+                className="editor-special-pane"
+                style={{ width: editorWidth }}
+              >
+                <EditorWorkspace
+                  workspace={workspace}
+                  layout={editorLayout}
+                  onLayoutChange={setEditorLayout}
+                  t={t}
+                />
+              </div>
+            </>
+          )}
+          {activeSidebarView === "editor" && editorLayout === "fullscreen" && (
+            <div className="editor-fullscreen-pane">
+              <EditorWorkspace
+                workspace={workspace}
+                layout={editorLayout}
+                onLayoutChange={setEditorLayout}
+                t={t}
+              />
+            </div>
+          )}
+        </div>
       </main>
 
       {showIndicator && (

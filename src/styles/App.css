@@ -74,6 +74,69 @@ html, body, #root {
   background: var(--bg-primary);
 }
 
+.main-workbench {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  overflow: hidden;
+  background: var(--bg-primary);
+  position: relative;
+}
+
+.main-panes-area {
+  flex: 1;
+  min-width: 280px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor-special-pane {
+  min-width: 420px;
+  flex-shrink: 0;
+  min-height: 0;
+  margin: 8px 8px 8px 0;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+}
+
+.editor-fullscreen-pane {
+  position: absolute;
+  inset: 8px;
+  z-index: 20;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+}
+
+.editor-resize-handle {
+  width: 6px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  position: relative;
+  align-self: stretch;
+  margin: 8px 0;
+}
+
+.editor-resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 2px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.editor-resize-handle:hover::after,
+.editor-resize-handle:active::after {
+  background: var(--border-focus);
+}
+
 /* Custom Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;

@@ -2,7 +2,7 @@ use oggybridge_hook_bridge::{HookBridge, HookEvent};
 use oggybridge_mcp_server::McpServer;
 use notify::{RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{new_debouncer, DebounceEventResult, Debouncer};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -45,6 +45,22 @@ pub struct FileChangedPayload {
     pub kind: String,
     pub content: String,
     pub path: String,
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceFileEntry {
+    pub path: String,
+    pub kind: String,
+    pub modified_ms: u64,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WriteWorkspaceFileRequest {
+    pub workspace_path: String,
+    pub relative_path: String,
+    pub content: String,
 }
 
 // ── public API ───────────────────────────────────────────────────────────────
@@ -303,6 +319,148 @@ pub fn close_workspace(store: State<'_, WorkspaceStore>) -> Result<(), String> {
 #[tauri::command]
 pub fn read_workspace_file(path: String) -> Result<String, String> {
     fs::read_to_string(&path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn list_workspace_files(workspace_path: String) -> Result<Vec<WorkspaceFileEntry>, String> {
+    let workspace = PathBuf::from(workspace_path);
+    let workspace_root = workspace.canonicalize().map_err(|e| e.to_string())?;
+    let mut files = Vec::new();
+    collect_workspace_files(&workspace_root, &workspace_root, &mut files)?;
+    files.sort_by(|a, b| {
+        let kind_order = match (a.kind.as_str(), b.kind.as_str()) {
+            ("directory", "file") => std::cmp::Ordering::Less,
+            ("file", "directory") => std::cmp::Ordering::Greater,
+            _ => std::cmp::Ordering::Equal,
+        };
+        kind_order.then_with(|| a.path.cmp(&b.path))
+    });
+    Ok(files)
+}
+
+#[tauri::command]
+pub fn read_workspace_text_file(
+    workspace_path: String,
+    relative_path: String,
+) -> Result<String, String> {
+    let path = safe_workspace_path(&workspace_path, &relative_path)?;
+    fs::read_to_string(path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn write_workspace_text_file(request: WriteWorkspaceFileRequest) -> Result<(), String> {
+    let path = safe_workspace_path(&request.workspace_path, &request.relative_path)?;
+    fs::write(path, request.content).map_err(|e| e.to_string())
+}
+
+fn safe_workspace_path(workspace_path: &str, relative_path: &str) -> Result<PathBuf, String> {
+    let workspace_root = PathBuf::from(workspace_path)
+        .canonicalize()
+        .map_err(|e| e.to_string())?;
+    let path = workspace_root.join(relative_path);
+    let parent = path
+        .parent()
+        .ok_or_else(|| "Invalid file path".to_string())?
+        .canonicalize()
+        .map_err(|e| e.to_string())?;
+    if !parent.starts_with(&workspace_root) {
+        return Err("File is outside the workspace".to_string());
+    }
+    Ok(path)
+}
+
+fn collect_workspace_files(
+    workspace_root: &Path,
+    dir: &Path,
+    out: &mut Vec<WorkspaceFileEntry>,
+) -> Result<(), String> {
+    if out.len() >= 5_000 {
+        return Ok(());
+    }
+
+    let entries = fs::read_dir(dir).map_err(|e| e.to_string())?;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let file_name = path.file_name().and_then(|name| name.to_str()).unwrap_or("");
+
+        if should_skip_workspace_entry(file_name) {
+            continue;
+        }
+
+        let Ok(relative) = path.strip_prefix(workspace_root) else {
+            continue;
+        };
+        let relative_path = relative.to_string_lossy().replace('\\', "/");
+        let modified_ms = fs::metadata(&path)
+            .and_then(|metadata| metadata.modified())
+            .ok()
+            .and_then(|modified| modified.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|duration| duration.as_millis() as u64)
+            .unwrap_or(0);
+
+        if path.is_dir() {
+            out.push(WorkspaceFileEntry {
+                path: relative_path,
+                kind: "directory".to_string(),
+                modified_ms,
+            });
+            collect_workspace_files(workspace_root, &path, out)?;
+            continue;
+        }
+
+        if !is_editable_file(&path) {
+            continue;
+        }
+
+        out.push(WorkspaceFileEntry {
+            path: relative_path,
+            kind: "file".to_string(),
+            modified_ms,
+        });
+    }
+    Ok(())
+}
+
+fn should_skip_workspace_entry(name: &str) -> bool {
+    matches!(
+        name,
+        ".git"
+            | ".DS_Store"
+            | "node_modules"
+            | "target"
+            | "dist"
+            | "build"
+            | ".vite"
+    )
+}
+
+fn is_editable_file(path: &Path) -> bool {
+    let file_name = path.file_name().and_then(|name| name.to_str()).unwrap_or("");
+    if file_name.starts_with('.') {
+        return true;
+    }
+
+    let Some(ext) = path.extension().and_then(|ext| ext.to_str()) else {
+        return false;
+    };
+    matches!(
+        ext,
+        "css"
+            | "html"
+            | "js"
+            | "json"
+            | "jsonl"
+            | "jsx"
+            | "md"
+            | "rs"
+            | "sh"
+            | "toml"
+            | "ts"
+            | "tsx"
+            | "txt"
+            | "yml"
+            | "yaml"
+    )
 }
 
 // ── templates ─────────────────────────────────────────────────────────────────

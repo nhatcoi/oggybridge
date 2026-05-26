@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Columns, X, Folder } from "../overview/Icons";
-import { AgentPane, WorkspaceInfo } from "../types";
+import { AgentPane, AgentConfig, CustomAgentDef, WorkspaceInfo } from "../types";
 import { AGENTS } from "../agents";
 import { Translator } from "../i18n";
 import { shortPath } from "../utils";
@@ -15,6 +15,8 @@ interface Props {
   onClose: (id: string) => void;
   onAddPane: (agentId: string) => void;
   onPaneSessionId: (paneId: string, sessionId: string) => void;
+  agentConfigs: Record<string, AgentConfig>;
+  customAgents: CustomAgentDef[];
   t: Translator;
 }
 
@@ -34,15 +36,27 @@ function getAgentClass(agentId: string): string {
   return "shell";
 }
 
-function resumeArgs(agentId: string, sessionId?: string): string[] | undefined {
-  if (!sessionId) return undefined;
+function resumeArgs(agentId: string, sessionId?: string): string[] {
+  if (!sessionId) return [];
   if (agentId === "claude-code") return ["--resume", sessionId];
   if (agentId === "codex") return ["resume", sessionId];
   if (agentId === "antigravity") return ["--conversation", sessionId];
-  return undefined;
+  return [];
 }
 
-export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPane, onPaneSessionId, t }: Props) {
+function buildArgs(
+  agentId: string,
+  sessionId: string | undefined,
+  agentConfigs: Record<string, AgentConfig>,
+): string[] | undefined {
+  const extraStr = agentConfigs[agentId]?.extraArgs?.trim() ?? "";
+  const extra = extraStr ? extraStr.split(/\s+/) : [];
+  const resume = resumeArgs(agentId, sessionId);
+  const all = [...extra, ...resume];
+  return all.length > 0 ? all : undefined;
+}
+
+export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPane, onPaneSessionId, agentConfigs, customAgents, t }: Props) {
   const [focused, setFocused] = useState<string | null>(null);
   const [ratios, setRatios] = useState<Record<string, number>>({});
   const containerRef = useRef<HTMLDivElement>(null);
@@ -73,7 +87,8 @@ export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPa
       {rows.map((row, rowIdx) => (
         <div key={rowIdx} className="pane-row">
           {row.map((pane, colIdx) => {
-            const agent = AGENTS.find((a) => a.id === pane.agentId);
+            const agent = AGENTS.find((a) => a.id === pane.agentId)
+              ?? customAgents.find((a) => a.id === pane.agentId);
             const isFocused = focused === pane.id;
             const ratio = ratios[pane.id] ?? 1;
             const nextPane = row[colIdx + 1];
@@ -123,7 +138,7 @@ export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPa
                       id={pane.id}
                       agentId={pane.agentId}
                       cmd={agent?.cmd || undefined}
-                      args={resumeArgs(pane.agentId, pane.sessionId)}
+                      args={buildArgs(pane.agentId, pane.sessionId, agentConfigs)}
                       cwd={workspace?.path}
                       onSessionId={(sessionId) => onPaneSessionId(pane.id, sessionId)}
                     />

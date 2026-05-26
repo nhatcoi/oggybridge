@@ -1,7 +1,9 @@
 export interface AgentPane {
-  id: string;
+  id: string;       // runtime DOM key, e.g. "pane-0"
+  paneId: string;   // stable UUID, persisted to session.json
   agentId: string;
   label: string;
+  sessionId?: string;
 }
 
 export interface WorkspaceInfo {
@@ -68,6 +70,7 @@ export interface AppSettings {
   fontSize: number;
   fontFamily: "jetbrains" | "fira" | "system";
   startupLastWs: boolean;
+  savePaneSessions: boolean;
   telemetry: boolean;
   enabledAgents: string[];
   maxPerRow: number;
@@ -82,6 +85,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   fontSize: 14,
   fontFamily: "jetbrains",
   startupLastWs: true,
+  savePaneSessions: true,
   telemetry: false,
   enabledAgents: ["claude-code", "codex", "copilot", "antigravity", "shell"],
   maxPerRow: 2,

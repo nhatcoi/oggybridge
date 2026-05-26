@@ -31,6 +31,4 @@ npm-debug.log*
 # Local Claude settings (per-user)
 .claude/settings.local.json
 
-.antigravitycli/
-
 .mcp.json

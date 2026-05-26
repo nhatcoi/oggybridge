@@ -2,17 +2,24 @@ import { useState, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { WorkspaceInfo, HookEvent, FileChangedPayload } from "../types";
+import { getRecentWorkspaces, writeRecentWorkspaces } from "../sessionStorage";
 
 export function useWorkspace() {
   const [workspace, setWorkspace] = useState<WorkspaceInfo | null>(null);
   const [hookEvents, setHookEvents] = useState<HookEvent[]>([]);
   const [recentWorkspaces, setRecentWorkspaces] = useState<string[]>([]);
+  const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("recentWorkspaces");
-      if (stored) setRecentWorkspaces(JSON.parse(stored));
-    } catch {}
+    let cancelled = false;
+    getRecentWorkspaces()
+      .then((stored) => {
+        if (!cancelled) setRecentWorkspaces(stored);
+      })
+      .finally(() => {
+        if (!cancelled) setSessionReady(true);
+      });
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -40,7 +47,7 @@ export function useWorkspace() {
   const addToRecent = useCallback((path: string) => {
     setRecentWorkspaces((prev) => {
       const next = [path, ...prev.filter((p) => p !== path)].slice(0, 5);
-      localStorage.setItem("recentWorkspaces", JSON.stringify(next));
+      writeRecentWorkspaces(next).catch(() => {});
       return next;
     });
   }, []);
@@ -50,8 +57,10 @@ export function useWorkspace() {
       const info = await invoke<WorkspaceInfo>("open_workspace", { path });
       setWorkspace(info);
       addToRecent(path);
+      return info;
     } catch (e) {
       alert(`Failed to open workspace: ${e}`);
+      return null;
     }
   }, [addToRecent]);
 
@@ -66,5 +75,5 @@ export function useWorkspace() {
     addToRecent(info.path);
   }, [addToRecent]);
 
-  return { workspace, hookEvents, recentWorkspaces, openWorkspace, closeWorkspace, handleWorkspaceOpened };
+  return { workspace, hookEvents, recentWorkspaces, sessionReady, openWorkspace, closeWorkspace, handleWorkspaceOpened };
 }

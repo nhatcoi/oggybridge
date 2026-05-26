@@ -273,6 +273,70 @@ input:checked + .settings-slider:before {
   box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
 }
 
+.settings-config-paths {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.settings-config-path-row {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.settings-config-path-label {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.settings-config-path-value {
+  display: block;
+  min-width: 0;
+  padding: 6px 8px;
+  overflow: hidden;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.settings-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.settings-action-btn {
+  padding: 7px 12px;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: all 0.12s ease;
+}
+
+.settings-action-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-focus);
+}
+
+.settings-action-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .settings-color-palette {
   display: flex;
   gap: 12px;

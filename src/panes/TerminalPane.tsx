@@ -9,12 +9,18 @@ import "../styles/TerminalPane.css";
 
 interface Props {
   id: string;
+  agentId: string;
   cmd?: string;
+  args?: string[];
   cwd?: string;
+  onSessionId?: (sessionId: string) => void;
 }
 
-export default function TerminalPane({ id, cmd, cwd }: Props) {
+export default function TerminalPane({ id, agentId, cmd, args, cwd, onSessionId }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const onSessionIdRef = useRef(onSessionId);
+  onSessionIdRef.current = onSessionId;
+  const argsKey = args?.join("\u0000") ?? "";
 
   useEffect(() => {
     const el = containerRef.current;
@@ -69,13 +75,34 @@ export default function TerminalPane({ id, cmd, cwd }: Props) {
       return;
     }
 
+    const startedAt = Date.now();
+
     invoke("create_pty", {
       id,
       cols: term.cols,
       rows: term.rows,
       cmd: cmd ?? null,
+      args: args ?? null,
       cwd: cwd ?? null,
     }).catch((e) => term.writeln(`\r\n\x1b[31mFailed to create pty: ${e}\x1b[0m`));
+
+    let sessionDetected = false;
+    const detectSession = () => {
+      if (!cwd || sessionDetected || args?.length || agentId === "shell") return;
+      invoke<string | null>("detect_agent_session", {
+        agentId,
+        workspacePath: cwd,
+        sinceMs: startedAt,
+      })
+        .then((sessionId) => {
+          if (!sessionId || sessionDetected) return;
+          sessionDetected = true;
+          onSessionIdRef.current?.(sessionId);
+        })
+        .catch(() => {});
+    };
+    const sessionDetector = window.setInterval(detectSession, 2000);
+    window.setTimeout(detectSession, 800);
 
     const unlistenPromise = listen<string>(`pty-data-${id}`, (e) => {
       term.write(e.payload);
@@ -95,10 +122,11 @@ export default function TerminalPane({ id, cmd, cwd }: Props) {
       unlistenPromise.then((f) => f());
       onDataDisposable.dispose();
       ro.disconnect();
+      window.clearInterval(sessionDetector);
       invoke("kill_pty", { id }).catch(() => {});
       term.dispose();
     };
-  }, [id, cmd, cwd]);
+  }, [id, agentId, cmd, argsKey, cwd]);
 
   return <div ref={containerRef} className="terminal-pane-container" />;
 }

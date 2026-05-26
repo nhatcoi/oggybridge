@@ -1,4 +1,5 @@
 import { X, Sliders, Palette, Terminal, Layout, Bot, Keyboard, Cpu } from "./Icons";
+import { invoke } from "@tauri-apps/api/core";
 import { AppSettings, ActionId, ACTION_LABELS, DEFAULT_KEYBINDINGS, Keybinding } from "../types";
 import { clampZoom, ZOOM_STEP, ZOOM_DEFAULT, ZOOM_MIN, ZOOM_MAX } from "../hooks/useZoom";
 import { formatBinding } from "../utils";
@@ -35,6 +36,7 @@ const tabIcons: Record<Tab, React.ComponentType<{ size?: number | string; classN
 
 const ALL_TABS: Tab[] = ["general", "appearance", "terminal", "layout", "agents", "keybindings", "advanced"];
 const ACTION_IDS = Object.keys(ACTION_LABELS) as ActionId[];
+type ConfigPaths = [configDir: string, settingsPath: string, sessionPath: string];
 
 const TAB_LABEL_KEYS: Record<Tab, Parameters<Translator>[0]> = {
   general:     "settings.tab.general",
@@ -56,6 +58,8 @@ const AGENT_NAMES: Record<string, string> = {
 export default function SettingsView({ isOpen, onClose, settings, onSaveSettings, t }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("general");
   const [recordingAction, setRecordingAction] = useState<ActionId | null>(null);
+  const [configPaths, setConfigPaths] = useState<ConfigPaths | null>(null);
+  const [configError, setConfigError] = useState<string | null>(null);
 
   const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     onSaveSettings({ ...settings, [key]: value });
@@ -102,6 +106,29 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
   // Cancel recording when switching tabs or closing
   useEffect(() => { setRecordingAction(null); }, [activeTab, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || activeTab !== "advanced") return;
+    if (!("__TAURI_INTERNALS__" in window)) {
+      setConfigError(t("settings.advanced.configUnavailable"));
+      return;
+    }
+
+    invoke<ConfigPaths>("get_config_paths")
+      .then((paths) => {
+        setConfigPaths(paths);
+        setConfigError(null);
+      })
+      .catch((e) => setConfigError(String(e)));
+  }, [activeTab, isOpen, t]);
+
+  const openManualConfig = (command: "open_settings_file" | "open_session_file" | "open_config_dir") => {
+    if (!("__TAURI_INTERNALS__" in window)) {
+      setConfigError(t("settings.advanced.configUnavailable"));
+      return;
+    }
+    invoke(command).catch((e) => setConfigError(String(e)));
+  };
+
   if (!isOpen) return null;
 
   const renderContent = () => {
@@ -113,6 +140,16 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
               <span className="settings-toggle-label">{t("settings.general.openLastWorkspace")}</span>
               <label className="settings-toggle">
                 <input type="checkbox" checked={settings.startupLastWs} onChange={(e) => updateSetting("startupLastWs", e.target.checked)} />
+                <span className="settings-slider"></span>
+              </label>
+            </div>
+            <div className="settings-toggle-row">
+              <div>
+                <span className="settings-toggle-label">{t("settings.general.savePaneSessions")}</span>
+                <p className="settings-help-text">{t("settings.general.savePaneSessionsHelp")}</p>
+              </div>
+              <label className="settings-toggle">
+                <input type="checkbox" checked={settings.savePaneSessions} onChange={(e) => updateSetting("savePaneSessions", e.target.checked)} />
                 <span className="settings-slider"></span>
               </label>
             </div>
@@ -287,16 +324,50 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
         );
       case "advanced":
         return (
-          <div className="settings-toggle-row">
-            <div>
-              <span className="settings-toggle-label">{t("settings.advanced.telemetry")}</span>
-              <p className="settings-help-text">{t("settings.advanced.telemetryHelp")}</p>
+          <>
+            <div className="settings-form-group">
+              <label className="settings-label">{t("settings.advanced.manualConfig")}</label>
+              <p className="settings-help-text">{t("settings.advanced.manualConfigHelp")}</p>
+              {configPaths && (
+                <div className="settings-config-paths">
+                  <div className="settings-config-path-row">
+                    <span className="settings-config-path-label">{t("settings.advanced.settingsPath")}</span>
+                    <code className="settings-config-path-value">{configPaths[1]}</code>
+                  </div>
+                  <div className="settings-config-path-row">
+                    <span className="settings-config-path-label">{t("settings.advanced.sessionPath")}</span>
+                    <code className="settings-config-path-value">{configPaths[2]}</code>
+                  </div>
+                  <div className="settings-config-path-row">
+                    <span className="settings-config-path-label">{t("settings.advanced.configFolder")}</span>
+                    <code className="settings-config-path-value">{configPaths[0]}</code>
+                  </div>
+                </div>
+              )}
+              {configError && <p className="settings-help-text">{configError}</p>}
+              <div className="settings-action-row">
+                <button className="settings-action-btn" onClick={() => openManualConfig("open_settings_file")} disabled={!configPaths}>
+                  {t("settings.advanced.openSettingsFile")}
+                </button>
+                <button className="settings-action-btn" onClick={() => openManualConfig("open_session_file")} disabled={!configPaths}>
+                  {t("settings.advanced.openSessionFile")}
+                </button>
+                <button className="settings-action-btn" onClick={() => openManualConfig("open_config_dir")} disabled={!configPaths}>
+                  {t("settings.advanced.openConfigFolder")}
+                </button>
+              </div>
             </div>
-            <label className="settings-toggle">
-              <input type="checkbox" checked={settings.telemetry} onChange={(e) => updateSetting("telemetry", e.target.checked)} />
-              <span className="settings-slider"></span>
-            </label>
-          </div>
+            <div className="settings-toggle-row">
+              <div>
+                <span className="settings-toggle-label">{t("settings.advanced.telemetry")}</span>
+                <p className="settings-help-text">{t("settings.advanced.telemetryHelp")}</p>
+              </div>
+              <label className="settings-toggle">
+                <input type="checkbox" checked={settings.telemetry} onChange={(e) => updateSetting("telemetry", e.target.checked)} />
+                <span className="settings-slider"></span>
+              </label>
+            </div>
+          </>
         );
     }
   };

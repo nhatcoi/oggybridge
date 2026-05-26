@@ -14,6 +14,7 @@ interface Props {
   workspace: WorkspaceInfo | null;
   onClose: (id: string) => void;
   onAddPane: (agentId: string) => void;
+  onPaneSessionId: (paneId: string, sessionId: string) => void;
   t: Translator;
 }
 
@@ -33,7 +34,15 @@ function getAgentClass(agentId: string): string {
   return "shell";
 }
 
-export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPane, t }: Props) {
+function resumeArgs(agentId: string, sessionId?: string): string[] | undefined {
+  if (!sessionId) return undefined;
+  if (agentId === "claude-code") return ["--resume", sessionId];
+  if (agentId === "codex") return ["resume", sessionId];
+  if (agentId === "antigravity") return ["--conversation", sessionId];
+  return undefined;
+}
+
+export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPane, onPaneSessionId, t }: Props) {
   const [focused, setFocused] = useState<string | null>(null);
   const [ratios, setRatios] = useState<Record<string, number>>({});
   const containerRef = useRef<HTMLDivElement>(null);
@@ -112,8 +121,11 @@ export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPa
                   <div className="pane-terminal">
                     <TerminalPane
                       id={pane.id}
+                      agentId={pane.agentId}
                       cmd={agent?.cmd || undefined}
+                      args={resumeArgs(pane.agentId, pane.sessionId)}
                       cwd={workspace?.path}
+                      onSessionId={(sessionId) => onPaneSessionId(pane.id, sessionId)}
                     />
                   </div>
                 </div>

@@ -19,6 +19,7 @@ const FONT_FAMILIES: Record<AppSettings["fontFamily"], string> = {
 
 export function useSettings() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [ready, setReady] = useState(false);
 
   const applySettings = useCallback((cfg: AppSettings) => {
     document.documentElement.style.setProperty("--accent-primary", COLOR_MAP[cfg.accentColor] ?? COLOR_MAP.blue);
@@ -38,7 +39,10 @@ export function useSettings() {
 
   useEffect(() => {
     applySettings(DEFAULT_SETTINGS);
-    if (!("__TAURI_INTERNALS__" in window)) return;
+    if (!("__TAURI_INTERNALS__" in window)) {
+      setReady(true);
+      return;
+    }
     invoke<string>("read_settings")
       .then((raw) => {
         try {
@@ -53,8 +57,9 @@ export function useSettings() {
           applySettings(loaded);
         } catch {}
       })
-      .catch((e) => console.error("Failed to read settings:", e));
+      .catch((e) => console.error("Failed to read settings:", e))
+      .finally(() => setReady(true));
   }, [applySettings]);
 
-  return { settings, saveSettings };
+  return { settings, saveSettings, ready };
 }

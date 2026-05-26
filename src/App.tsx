@@ -10,6 +10,13 @@ import { useUpdater } from "./hooks/useUpdater";
 import { useZoom } from "./hooks/useZoom";
 import { AgentPane } from "./types";
 import { actionLabelKey, createTranslator, interpolate } from "./i18n";
+import {
+  StoredPaneSession,
+  getLastWorkspacePath,
+  getStoredPaneSession,
+  writeLastWorkspacePath,
+  writeStoredPaneSession,
+} from "./sessionStorage";
 import { matchesBinding, formatBinding } from "./utils";
 import PaneGrid from "./panes/PaneGrid";
 import Sidebar from "./overview/Sidebar";
@@ -18,18 +25,28 @@ import SettingsView from "./overview/SettingsView";
 import CommandPalette, { Command } from "./overview/CommandPalette";
 import "./styles/App.css";
 
+function makeDefaultPanes(): AgentPane[] {
+  return [{ id: "pane-0", paneId: crypto.randomUUID(), agentId: "shell", label: "Shell" }];
+}
+
+function createPane(agentId: string, index: number): AgentPane {
+  const agent = AGENTS.find((a) => a.id === agentId) ?? AGENTS[AGENTS.length - 1];
+  return { id: `pane-${index}`, paneId: crypto.randomUUID(), agentId: agent.id, label: agent.label };
+}
+
 export default function App() {
   const paneCounter = useRef(0);
-  const [panes, setPanes] = useState<AgentPane[]>([
-    { id: "pane-0", agentId: "shell", label: "Shell" },
-  ]);
+  const [panes, setPanes] = useState<AgentPane[]>(makeDefaultPanes);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
-  const { settings, saveSettings } = useSettings();
+  const { settings, saveSettings, ready: settingsReady } = useSettings();
   const t = useMemo(() => createTranslator(settings.locale), [settings.locale]);
-  const { workspace, hookEvents, recentWorkspaces, openWorkspace, closeWorkspace, handleWorkspaceOpened } = useWorkspace();
+  const { workspace, hookEvents, recentWorkspaces, sessionReady, openWorkspace, closeWorkspace, handleWorkspaceOpened } = useWorkspace();
   const { updateAvailable, updating, applyUpdate, dismissUpdate } = useUpdater();
+  const didRestoreWorkspace = useRef(false);
+  const restoredPaneWorkspace = useRef<string | null>(null);
+  const skipNextPaneSessionSave = useRef<string | null>(null);
 
   const saveZoom = useCallback((level: number) => {
     saveSettings({ ...settings, zoomLevel: level });
@@ -38,10 +55,9 @@ export default function App() {
 
   const addPane = useCallback((agentId: string) => {
     paneCounter.current += 1;
-    const agent = AGENTS.find((a) => a.id === agentId) ?? AGENTS[AGENTS.length - 1];
     setPanes((prev) => [
       ...prev,
-      { id: `pane-${paneCounter.current}`, agentId, label: agent.label },
+      createPane(agentId, paneCounter.current),
     ]);
   }, []);
 
@@ -49,11 +65,94 @@ export default function App() {
     setPanes((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
+  const updatePaneSessionId = useCallback((paneId: string, sessionId: string) => {
+    setPanes((prev) => prev.map((pane) => (
+      pane.id === paneId && pane.sessionId !== sessionId
+        ? { ...pane, sessionId }
+        : pane
+    )));
+  }, []);
+
   const handleSelectWorkspaceDialog = useCallback(async () => {
     if (!("__TAURI_INTERNALS__" in window)) return;
     const selected = await openDirDialog({ directory: true, multiple: false });
     if (selected && typeof selected === "string") openWorkspace(selected);
   }, [openWorkspace]);
+
+  const restorePanes = useCallback((storedPanes: StoredPaneSession | null) => {
+    const nextPanes = storedPanes && storedPanes.length > 0
+      ? storedPanes.map((pane, index) => ({
+          id: `pane-${index}`,
+          paneId: pane.paneId,
+          agentId: pane.agentId,
+          label: pane.label,
+        }))
+      : makeDefaultPanes();
+
+    paneCounter.current = Math.max(0, nextPanes.length - 1);
+    setPanes(nextPanes);
+  }, []);
+
+  useEffect(() => {
+    if (didRestoreWorkspace.current) return;
+    if (!("__TAURI_INTERNALS__" in window)) return;
+    if (!settingsReady || !sessionReady || !settings.startupLastWs || workspace) return;
+
+    let cancelled = false;
+    getLastWorkspacePath().then((storedWorkspace) => {
+      if (cancelled) return;
+      const lastWorkspace = storedWorkspace ?? recentWorkspaces[0];
+      if (!lastWorkspace) return;
+
+      didRestoreWorkspace.current = true;
+      void openWorkspace(lastWorkspace);
+    });
+
+    return () => { cancelled = true; };
+  }, [settingsReady, sessionReady, settings.startupLastWs, workspace, recentWorkspaces, openWorkspace]);
+
+  useEffect(() => {
+    if (!workspace) return;
+    writeLastWorkspacePath(workspace.path).catch(() => {});
+  }, [workspace]);
+
+  useEffect(() => {
+    if (workspace) return;
+    restoredPaneWorkspace.current = null;
+    skipNextPaneSessionSave.current = null;
+  }, [workspace]);
+
+  useEffect(() => {
+    if (!workspace || settings.savePaneSessions) return;
+    restoredPaneWorkspace.current = workspace.path;
+    skipNextPaneSessionSave.current = null;
+  }, [settings.savePaneSessions, workspace]);
+
+  useEffect(() => {
+    if (!settingsReady || !settings.savePaneSessions || !workspace) return;
+    if (restoredPaneWorkspace.current === workspace.path) return;
+
+    let cancelled = false;
+    restoredPaneWorkspace.current = workspace.path;
+    skipNextPaneSessionSave.current = workspace.path;
+    getStoredPaneSession(workspace.path).then((storedPanes) => {
+      if (cancelled) return;
+      restorePanes(storedPanes);
+    });
+
+    return () => { cancelled = true; };
+  }, [settingsReady, settings.savePaneSessions, workspace, restorePanes]);
+
+  useEffect(() => {
+    if (!settingsReady || !settings.savePaneSessions || !workspace) return;
+    if (skipNextPaneSessionSave.current === workspace.path) {
+      skipNextPaneSessionSave.current = null;
+      return;
+    }
+
+    const paneSessions = panes.map(({ paneId, agentId, label }) => ({ paneId, agentId, label }));
+    writeStoredPaneSession(workspace.path, paneSessions).catch(() => {});
+  }, [settingsReady, settings.savePaneSessions, workspace, panes]);
 
   useEffect(() => {
     const kb = settings.keybindings;
@@ -135,6 +234,7 @@ export default function App() {
           workspace={workspace}
           onClose={removePane}
           onAddPane={addPane}
+          onPaneSessionId={updatePaneSessionId}
           t={t}
         />
       </main>

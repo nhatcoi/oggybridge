@@ -9,6 +9,7 @@ import { useWorkspace } from "./hooks/useWorkspace";
 import { useUpdater } from "./hooks/useUpdater";
 import { useZoom } from "./hooks/useZoom";
 import { AgentPane } from "./types";
+import { actionLabelKey, createTranslator, interpolate } from "./i18n";
 import { matchesBinding, formatBinding } from "./utils";
 import PaneGrid from "./panes/PaneGrid";
 import Sidebar from "./overview/Sidebar";
@@ -26,6 +27,7 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   const { settings, saveSettings } = useSettings();
+  const t = useMemo(() => createTranslator(settings.locale), [settings.locale]);
   const { workspace, hookEvents, recentWorkspaces, openWorkspace, closeWorkspace, handleWorkspaceOpened } = useWorkspace();
   const { updateAvailable, updating, applyUpdate, dismissUpdate } = useUpdater();
 
@@ -70,19 +72,19 @@ export default function App() {
   const commands: Command[] = useMemo(() => {
     const kb = settings.keybindings;
     return [
-      { id: "open-workspace",    label: "Open Workspace",            category: "Workspace", icon: <FolderOpen size={16} />, shortcut: formatBinding(kb.openWorkspace),        action: handleSelectWorkspaceDialog },
-      { id: "close-workspace",   label: "Close Current Workspace",   category: "Workspace", icon: <X size={16} />,                                                            action: closeWorkspace },
-      { id: "toggle-settings",   label: "Toggle Settings",           category: "General",   icon: <Settings size={16} />,                                                     action: () => setSettingsOpen((p) => !p) },
-      { id: "zoom-in",           label: "Zoom In",                   category: "View",      icon: <ZoomIn size={16} />,    shortcut: formatBinding(kb.zoomIn),               action: zoomIn },
-      { id: "zoom-out",          label: "Zoom Out",                  category: "View",      icon: <ZoomOut size={16} />,   shortcut: formatBinding(kb.zoomOut),              action: zoomOut },
-      { id: "zoom-reset",        label: "Reset Zoom",                category: "View",      icon: <ZoomIn size={16} />,    shortcut: formatBinding(kb.zoomReset),            action: zoomReset },
-      { id: "launch-claude",     label: "Launch Claude Code",        category: "Agents",    icon: <Bot size={16} />,                                                          action: () => addPane("claude-code") },
-      { id: "launch-codex",      label: "Launch Codex CLI",          category: "Agents",    icon: <Zap size={16} />,                                                          action: () => addPane("codex") },
-      { id: "launch-copilot",    label: "Launch GitHub Copilot CLI", category: "Agents",    icon: <Github size={16} />,                                                       action: () => addPane("copilot") },
-      { id: "launch-antigravity",label: "Launch Antigravity CLI",    category: "Agents",    icon: <Compass size={16} />,                                                      action: () => addPane("antigravity") },
-      { id: "launch-shell",      label: "Launch System Shell",       category: "Agents",    icon: <Terminal size={16} />,                                                     action: () => addPane("shell") },
+      { id: "open-workspace",     label: t("command.openWorkspace"),       category: t("command.category.workspace"), icon: <FolderOpen size={16} />, shortcut: formatBinding(kb.openWorkspace), action: handleSelectWorkspaceDialog },
+      { id: "close-workspace",    label: t("command.closeWorkspace"),      category: t("command.category.workspace"), icon: <X size={16} />, action: closeWorkspace },
+      { id: "toggle-settings",    label: t("command.toggleSettings"),      category: t("command.category.general"),   icon: <Settings size={16} />, action: () => setSettingsOpen((p) => !p) },
+      { id: "zoom-in",            label: t(actionLabelKey("zoomIn")),      category: t("command.category.view"),      icon: <ZoomIn size={16} />, shortcut: formatBinding(kb.zoomIn), action: zoomIn },
+      { id: "zoom-out",           label: t(actionLabelKey("zoomOut")),     category: t("command.category.view"),      icon: <ZoomOut size={16} />, shortcut: formatBinding(kb.zoomOut), action: zoomOut },
+      { id: "zoom-reset",         label: t(actionLabelKey("zoomReset")),   category: t("command.category.view"),      icon: <ZoomIn size={16} />, shortcut: formatBinding(kb.zoomReset), action: zoomReset },
+      { id: "launch-claude",      label: t("command.launchClaude"),        category: t("command.category.agents"),    icon: <Bot size={16} />, action: () => addPane("claude-code") },
+      { id: "launch-codex",       label: t("command.launchCodex"),         category: t("command.category.agents"),    icon: <Zap size={16} />, action: () => addPane("codex") },
+      { id: "launch-copilot",     label: t("command.launchCopilot"),       category: t("command.category.agents"),    icon: <Github size={16} />, action: () => addPane("copilot") },
+      { id: "launch-antigravity", label: t("command.launchAntigravity"),   category: t("command.category.agents"),    icon: <Compass size={16} />, action: () => addPane("antigravity") },
+      { id: "launch-shell",       label: t("command.launchShell"),         category: t("command.category.agents"),    icon: <Terminal size={16} />, action: () => addPane("shell") },
     ];
-  }, [settings.keybindings, handleSelectWorkspaceDialog, closeWorkspace, addPane, zoomIn, zoomOut, zoomReset]);
+  }, [settings.keybindings, handleSelectWorkspaceDialog, closeWorkspace, addPane, zoomIn, zoomOut, zoomReset, t]);
 
   const visibleAgents = useMemo(
     () => AGENTS.filter((a) => settings.enabledAgents.includes(a.id)),
@@ -101,19 +103,20 @@ export default function App() {
         onSelectWorkspace={openWorkspace}
         onToggleSettings={() => setSettingsOpen(true)}
         onToggleCommandPalette={() => setPaletteOpen(true)}
+        t={t}
       />
       <main className="main-area">
         {updateAvailable && (
           <div className="update-banner">
             <span className="update-banner-text">
-              A new update (version <strong>{updateAvailable.version}</strong>) is available!
+              {interpolate(t("update.available"), { version: updateAvailable.version })}
             </span>
             <div className="update-banner-actions">
               <button className="update-banner-btn" onClick={applyUpdate} disabled={updating}>
-                {updating ? "Updating..." : "Update Now"}
+                {updating ? t("update.updating") : t("update.now")}
               </button>
               {!updating && (
-                <button className="update-banner-close" onClick={dismissUpdate} title="Close">
+                <button className="update-banner-close" onClick={dismissUpdate} title={t("common.close")}>
                   <X size={14} />
                 </button>
               )}
@@ -124,6 +127,7 @@ export default function App() {
           workspace={workspace}
           onOpen={handleWorkspaceOpened}
           onClose={closeWorkspace}
+          t={t}
         />
         <PaneGrid
           panes={panes}
@@ -131,6 +135,7 @@ export default function App() {
           workspace={workspace}
           onClose={removePane}
           onAddPane={addPane}
+          t={t}
         />
       </main>
 
@@ -145,12 +150,14 @@ export default function App() {
         onClose={() => setSettingsOpen(false)}
         settings={settings}
         onSaveSettings={saveSettings}
+        t={t}
       />
 
       <CommandPalette
         isOpen={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         commands={commands}
+        t={t}
       />
     </div>
   );

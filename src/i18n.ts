@@ -1,0 +1,271 @@
+import { ActionId, AppSettings } from "./types";
+
+export type Locale = "en" | "vi";
+export type TranslationKey = keyof typeof en;
+export type Translator = (key: TranslationKey) => string;
+
+export const LOCALE_OPTIONS: Array<{ value: Locale; label: string }> = [
+  { value: "en", label: "English" },
+  { value: "vi", label: "Tiếng Việt" },
+];
+
+const en = {
+  "common.close": "Close",
+  "common.idle": "Idle",
+  "common.launch": "Launch",
+  "common.reset": "Reset",
+  "common.running": "Running",
+
+  "locale.label": "Language",
+  "locale.help": "Changes the application interface language.",
+
+  "settings.title": "Settings",
+  "settings.tab.general": "General",
+  "settings.tab.appearance": "Appearance",
+  "settings.tab.terminal": "Terminal",
+  "settings.tab.layout": "Layout",
+  "settings.tab.agents": "Agents",
+  "settings.tab.keybindings": "Keybindings",
+  "settings.tab.advanced": "Advanced",
+  "settings.general.openLastWorkspace": "Open last workspace on launch",
+  "settings.general.startMinimized": "Start minimized in system tray",
+  "settings.general.confirmClose": "Confirm before closing multiple panes",
+  "settings.appearance.theme": "Theme",
+  "settings.appearance.theme.dark": "Dark (Deep Carbon)",
+  "settings.appearance.theme.light": "Light",
+  "settings.appearance.theme.system": "System Default",
+  "settings.appearance.accentColor": "Accent Color",
+  "settings.appearance.zoomLevel": "Zoom Level",
+  "settings.appearance.zoomHelp": "Scales the entire application window. Range: 50%–200%. Shortcut: ⌘+ / ⌘−",
+  "settings.terminal.fontFamily": "Font Family",
+  "settings.terminal.fontSize": "Font Size",
+  "settings.terminal.cursorBlinking": "Terminal Cursor Blinking",
+  "settings.agents.enable": "Enable {agent} Agent",
+  "settings.layout.maxPanes": "Max terminal panes per row",
+  "settings.layout.onePane": "1 Pane",
+  "settings.layout.twoPanes": "2 Panes (Default)",
+  "settings.layout.threePanes": "3 Panes",
+  "settings.layout.fourPanes": "4 Panes",
+  "settings.layout.sixPanes": "6 Panes",
+  "settings.layout.help": "Controls the grid organization when multiple agent terminals are launched.",
+  "settings.keybindings.help": "Click a shortcut to record a new one. Press Esc to cancel.",
+  "settings.keybindings.pressShortcut": "Press shortcut...",
+  "settings.keybindings.recordTitle": "Press a key combo (Esc to cancel)",
+  "settings.keybindings.changeTitle": "Click to change",
+  "settings.keybindings.resetTitle": "Reset to default",
+  "settings.advanced.telemetry": "Enable anonymous crash logs & telemetry",
+  "settings.advanced.telemetryHelp": "Helps us diagnose bugs and improve OggyBridge desktop experience.",
+
+  "action.toggleCommandPalette": "Open Command Palette",
+  "action.openWorkspace": "Open Workspace",
+  "action.closeLastPane": "Close Last Pane",
+  "action.zoomIn": "Zoom In",
+  "action.zoomOut": "Zoom Out",
+  "action.zoomReset": "Reset Zoom",
+
+  "command.category.workspace": "Workspace",
+  "command.category.general": "General",
+  "command.category.view": "View",
+  "command.category.agents": "Agents",
+  "command.openWorkspace": "Open Workspace",
+  "command.closeWorkspace": "Close Current Workspace",
+  "command.toggleSettings": "Toggle Settings",
+  "command.launchClaude": "Launch Claude Code",
+  "command.launchCodex": "Launch Codex CLI",
+  "command.launchCopilot": "Launch GitHub Copilot CLI",
+  "command.launchAntigravity": "Launch Antigravity CLI",
+  "command.launchShell": "Launch System Shell",
+
+  "palette.placeholder": "Type a command or search...",
+  "palette.empty": "No results found.",
+
+  "update.available": "A new update (version {version}) is available!",
+  "update.updating": "Updating...",
+  "update.now": "Update Now",
+
+  "workspace.close": "Close workspace",
+  "workspace.empty": "No workspace open",
+  "workspace.open": "Open Workspace",
+  "workspace.opening": "Opening...",
+
+  "sidebar.about": "About OggyBridge",
+  "sidebar.explorerTitle": "Explorer (Workspaces)",
+  "sidebar.tasksTitle": "Tasks Checklist",
+  "sidebar.agentsTitle": "Agents Launcher",
+  "sidebar.activityTitle": "Activity Feed",
+  "sidebar.commandPaletteTitle": "Command Palette (⌘K)",
+  "sidebar.settingsTitle": "Settings",
+  "sidebar.userSession": "User Session",
+  "sidebar.explorer": "Explorer",
+  "sidebar.tasks": "Tasks",
+  "sidebar.agents": "Agents",
+  "sidebar.activity": "Activity",
+  "sidebar.activeWorkspace": "Active Workspace",
+  "sidebar.noActiveWorkspace": "No active workspace",
+  "sidebar.recentWorkspaces": "Recent Workspaces",
+  "sidebar.noRecentWorkspaces": "No recent workspaces",
+  "sidebar.openWorkspaceForTasks": "Open a workspace to view tasks checklist.",
+  "sidebar.agentLaunchers": "Agent Launchers",
+  "sidebar.openAgent": "Open {agent}",
+  "sidebar.activePanes": "Active Panes ({count})",
+  "sidebar.noOpenPanes": "No open terminal panes",
+  "sidebar.conflictWarning": "Conflict warning: multiple agents modifying {file}",
+  "sidebar.liveActivityLog": "Live Activity Log",
+  "sidebar.noRecentEvents": "No recent file or tool events",
+  "sidebar.logoAlt": "OggyBridge Logo Large",
+  "tasks.empty": "No tasks yet",
+  "tasks.done": "{done}/{total} done",
+
+  "launcher.title": "Launch a new agent",
+  "launcher.subtitle": "Launch multiple agents side-by-side to collaborate in this workspace.",
+  "launcher.addCustom": "Add Custom Agent",
+  "launcher.addCustomHelp": "Configure a custom command, path, and environment.",
+  "launcher.desc.claude": "Anthropic's Claude Code CLI. Interactive agent optimized for editing, refactoring, and git operations.",
+  "launcher.desc.codex": "OpenAI Codex-powered terminal interface. Great for quick scaffolding, search, and coding tasks.",
+  "launcher.desc.copilot": "GitHub's official command line pair programmer. Translates natural language to shell commands.",
+  "launcher.desc.antigravity": "Local-first agentic coding client. Excels at precision structural edits and codebase analysis.",
+  "launcher.desc.shell": "Open a default persistent system shell (bash/zsh) inside the workspace environment.",
+
+  "pane.split": "Split horizontally",
+  "pane.close": "Close pane",
+} as const;
+
+const vi: Record<TranslationKey, string> = {
+  "common.close": "Đóng",
+  "common.idle": "Rảnh",
+  "common.launch": "Mở",
+  "common.reset": "Đặt lại",
+  "common.running": "Đang chạy",
+
+  "locale.label": "Ngôn ngữ",
+  "locale.help": "Thay đổi ngôn ngữ giao diện ứng dụng.",
+
+  "settings.title": "Cài đặt",
+  "settings.tab.general": "Chung",
+  "settings.tab.appearance": "Giao diện",
+  "settings.tab.terminal": "Terminal",
+  "settings.tab.layout": "Bố cục",
+  "settings.tab.agents": "Agents",
+  "settings.tab.keybindings": "Phím tắt",
+  "settings.tab.advanced": "Nâng cao",
+  "settings.general.openLastWorkspace": "Mở workspace gần nhất khi khởi động",
+  "settings.general.startMinimized": "Khởi động thu nhỏ vào system tray",
+  "settings.general.confirmClose": "Xác nhận trước khi đóng nhiều pane",
+  "settings.appearance.theme": "Theme",
+  "settings.appearance.theme.dark": "Tối (Deep Carbon)",
+  "settings.appearance.theme.light": "Sáng",
+  "settings.appearance.theme.system": "Theo hệ thống",
+  "settings.appearance.accentColor": "Màu nhấn",
+  "settings.appearance.zoomLevel": "Mức thu phóng",
+  "settings.appearance.zoomHelp": "Phóng to/thu nhỏ toàn bộ cửa sổ. Khoảng: 50%–200%. Phím tắt: ⌘+ / ⌘−",
+  "settings.terminal.fontFamily": "Font chữ",
+  "settings.terminal.fontSize": "Cỡ chữ",
+  "settings.terminal.cursorBlinking": "Nhấp nháy con trỏ terminal",
+  "settings.agents.enable": "Bật agent {agent}",
+  "settings.layout.maxPanes": "Số terminal pane tối đa mỗi hàng",
+  "settings.layout.onePane": "1 pane",
+  "settings.layout.twoPanes": "2 pane (Mặc định)",
+  "settings.layout.threePanes": "3 pane",
+  "settings.layout.fourPanes": "4 pane",
+  "settings.layout.sixPanes": "6 pane",
+  "settings.layout.help": "Điều khiển cách sắp xếp lưới khi mở nhiều terminal agent.",
+  "settings.keybindings.help": "Bấm vào phím tắt để ghi tổ hợp mới. Nhấn Esc để hủy.",
+  "settings.keybindings.pressShortcut": "Nhấn phím tắt...",
+  "settings.keybindings.recordTitle": "Nhấn tổ hợp phím (Esc để hủy)",
+  "settings.keybindings.changeTitle": "Bấm để thay đổi",
+  "settings.keybindings.resetTitle": "Đặt lại mặc định",
+  "settings.advanced.telemetry": "Bật crash log & telemetry ẩn danh",
+  "settings.advanced.telemetryHelp": "Giúp chẩn đoán lỗi và cải thiện trải nghiệm OggyBridge desktop.",
+
+  "action.toggleCommandPalette": "Mở Command Palette",
+  "action.openWorkspace": "Mở Workspace",
+  "action.closeLastPane": "Đóng pane cuối",
+  "action.zoomIn": "Phóng to",
+  "action.zoomOut": "Thu nhỏ",
+  "action.zoomReset": "Đặt lại thu phóng",
+
+  "command.category.workspace": "Workspace",
+  "command.category.general": "Chung",
+  "command.category.view": "Hiển thị",
+  "command.category.agents": "Agents",
+  "command.openWorkspace": "Mở Workspace",
+  "command.closeWorkspace": "Đóng workspace hiện tại",
+  "command.toggleSettings": "Bật/tắt Cài đặt",
+  "command.launchClaude": "Mở Claude Code",
+  "command.launchCodex": "Mở Codex CLI",
+  "command.launchCopilot": "Mở GitHub Copilot CLI",
+  "command.launchAntigravity": "Mở Antigravity CLI",
+  "command.launchShell": "Mở System Shell",
+
+  "palette.placeholder": "Nhập lệnh hoặc tìm kiếm...",
+  "palette.empty": "Không có kết quả.",
+
+  "update.available": "Có bản cập nhật mới (phiên bản {version})!",
+  "update.updating": "Đang cập nhật...",
+  "update.now": "Cập nhật ngay",
+
+  "workspace.close": "Đóng workspace",
+  "workspace.empty": "Chưa mở workspace",
+  "workspace.open": "Mở Workspace",
+  "workspace.opening": "Đang mở...",
+
+  "sidebar.about": "Về OggyBridge",
+  "sidebar.explorerTitle": "Explorer (Workspaces)",
+  "sidebar.tasksTitle": "Danh sách task",
+  "sidebar.agentsTitle": "Mở agent",
+  "sidebar.activityTitle": "Hoạt động",
+  "sidebar.commandPaletteTitle": "Command Palette (⌘K)",
+  "sidebar.settingsTitle": "Cài đặt",
+  "sidebar.userSession": "Phiên người dùng",
+  "sidebar.explorer": "Explorer",
+  "sidebar.tasks": "Tasks",
+  "sidebar.agents": "Agents",
+  "sidebar.activity": "Hoạt động",
+  "sidebar.activeWorkspace": "Workspace đang mở",
+  "sidebar.noActiveWorkspace": "Chưa có workspace",
+  "sidebar.recentWorkspaces": "Workspace gần đây",
+  "sidebar.noRecentWorkspaces": "Chưa có workspace gần đây",
+  "sidebar.openWorkspaceForTasks": "Mở workspace để xem danh sách task.",
+  "sidebar.agentLaunchers": "Mở agent",
+  "sidebar.openAgent": "Mở {agent}",
+  "sidebar.activePanes": "Pane đang mở ({count})",
+  "sidebar.noOpenPanes": "Chưa có terminal pane",
+  "sidebar.conflictWarning": "Cảnh báo xung đột: nhiều agent đang sửa {file}",
+  "sidebar.liveActivityLog": "Nhật ký hoạt động",
+  "sidebar.noRecentEvents": "Chưa có sự kiện file hoặc tool gần đây",
+  "sidebar.logoAlt": "Logo OggyBridge lớn",
+  "tasks.empty": "Chưa có task",
+  "tasks.done": "{done}/{total} hoàn thành",
+
+  "launcher.title": "Mở agent mới",
+  "launcher.subtitle": "Mở nhiều agent song song để cùng làm việc trong workspace này.",
+  "launcher.addCustom": "Thêm agent tùy chỉnh",
+  "launcher.addCustomHelp": "Cấu hình command, path và environment tùy chỉnh.",
+  "launcher.desc.claude": "Claude Code CLI của Anthropic. Agent tương tác tối ưu cho chỉnh sửa, refactor và thao tác git.",
+  "launcher.desc.codex": "Giao diện terminal dùng OpenAI Codex. Phù hợp cho scaffolding nhanh, tìm kiếm và coding task.",
+  "launcher.desc.copilot": "Pair programmer dòng lệnh chính thức của GitHub. Chuyển ngôn ngữ tự nhiên thành lệnh shell.",
+  "launcher.desc.antigravity": "Client coding agent local-first. Mạnh về chỉnh sửa cấu trúc chính xác và phân tích codebase.",
+  "launcher.desc.shell": "Mở system shell mặc định (bash/zsh) bền vững trong môi trường workspace.",
+
+  "pane.split": "Chia ngang",
+  "pane.close": "Đóng pane",
+};
+
+const dictionaries: Record<Locale, Record<TranslationKey, string>> = { en, vi };
+
+export function normalizeLocale(locale: unknown): Locale {
+  return locale === "vi" ? "vi" : "en";
+}
+
+export function createTranslator(locale: AppSettings["locale"]): Translator {
+  const dictionary = dictionaries[normalizeLocale(locale)];
+  return (key) => dictionary[key] ?? en[key] ?? key;
+}
+
+export function interpolate(text: string, values: Record<string, string | number>): string {
+  return text.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ""));
+}
+
+export function actionLabelKey(action: ActionId): TranslationKey {
+  return `action.${action}` as TranslationKey;
+}

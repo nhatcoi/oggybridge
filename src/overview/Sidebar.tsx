@@ -3,6 +3,7 @@ import {
 } from "./Icons";
 import { AgentPane, HookEvent, WorkspaceInfo } from "../types";
 import { AGENT_ICONS } from "../agents";
+import { Translator, interpolate } from "../i18n";
 import { shortPath, fmtTime } from "../utils";
 import TasksView from "./TasksView";
 import { useState } from "react";
@@ -25,6 +26,7 @@ interface Props {
   onSelectWorkspace: (path: string) => void;
   onToggleSettings: () => void;
   onToggleCommandPalette: () => void;
+  t: Translator;
 }
 
 export type SidebarView = "explorer" | "tasks" | "agents" | "activity";
@@ -39,6 +41,7 @@ export default function Sidebar({
   onSelectWorkspace,
   onToggleSettings,
   onToggleCommandPalette,
+  t,
 }: Props) {
   const [activeView, setActiveView] = useState<SidebarView | null>("explorer");
   const [isLogoOpen, setIsLogoOpen] = useState(false);
@@ -64,14 +67,14 @@ export default function Sidebar({
       {/* 1. Activity Bar */}
       <div className="activity-bar">
         <div className="activity-bar-top">
-          <div className="activity-bar-brand" title="About OggyBridge" onClick={() => setIsLogoOpen(true)}>
+          <div className="activity-bar-brand" title={t("sidebar.about")} onClick={() => setIsLogoOpen(true)}>
             <img src={logoUrl} alt="OggyBridge" className="activity-logo" />
           </div>
 
           <button
             className={`activity-tab-btn ${activeView === "explorer" ? "active" : ""}`}
             onClick={() => handleTabClick("explorer")}
-            title="Explorer (Workspaces)"
+            title={t("sidebar.explorerTitle")}
           >
             <Folder size={20} />
           </button>
@@ -79,7 +82,7 @@ export default function Sidebar({
           <button
             className={`activity-tab-btn ${activeView === "tasks" ? "active" : ""}`}
             onClick={() => handleTabClick("tasks")}
-            title="Tasks Checklist"
+            title={t("sidebar.tasksTitle")}
           >
             <CheckSquare size={20} />
             {workspace && <span className="tab-badge-dot"></span>}
@@ -88,7 +91,7 @@ export default function Sidebar({
           <button
             className={`activity-tab-btn ${activeView === "agents" ? "active" : ""}`}
             onClick={() => handleTabClick("agents")}
-            title="Agents Launcher"
+            title={t("sidebar.agentsTitle")}
           >
             <Bot size={20} />
             {panes.length > 0 && (
@@ -99,7 +102,7 @@ export default function Sidebar({
           <button
             className={`activity-tab-btn ${activeView === "activity" ? "active" : ""}`}
             onClick={() => handleTabClick("activity")}
-            title="Activity Feed"
+            title={t("sidebar.activityTitle")}
           >
             <Activity size={20} />
             {hasConflict && <span className="tab-badge-warning">!</span>}
@@ -107,13 +110,13 @@ export default function Sidebar({
         </div>
 
         <div className="activity-bar-bottom">
-          <button className="activity-tab-btn" onClick={onToggleCommandPalette} title="Command Palette (⌘K)">
+          <button className="activity-tab-btn" onClick={onToggleCommandPalette} title={t("sidebar.commandPaletteTitle")}>
             <Search size={20} />
           </button>
-          <button className="activity-tab-btn" onClick={onToggleSettings} title="Settings">
+          <button className="activity-tab-btn" onClick={onToggleSettings} title={t("sidebar.settingsTitle")}>
             <Settings size={20} />
           </button>
-          <div className="activity-user-avatar" title="User Session">NC</div>
+          <div className="activity-user-avatar" title={t("sidebar.userSession")}>NC</div>
         </div>
       </div>
 
@@ -122,10 +125,10 @@ export default function Sidebar({
         <div className="sidebar-panel">
           <div className="sidebar-panel-header">
             <h2>
-              {activeView === "explorer" && "Explorer"}
-              {activeView === "tasks" && "Tasks"}
-              {activeView === "agents" && "Agents"}
-              {activeView === "activity" && "Activity"}
+              {activeView === "explorer" && t("sidebar.explorer")}
+              {activeView === "tasks" && t("sidebar.tasks")}
+              {activeView === "agents" && t("sidebar.agents")}
+              {activeView === "activity" && t("sidebar.activity")}
             </h2>
           </div>
 
@@ -134,7 +137,7 @@ export default function Sidebar({
               <>
                 <section className="sidebar-section">
                   <div className="sidebar-section-header">
-                    <h3 className="sidebar-section-title">Active Workspace</h3>
+                    <h3 className="sidebar-section-title">{t("sidebar.activeWorkspace")}</h3>
                   </div>
                   {workspace ? (
                     <div className="active-workspace-card">
@@ -149,13 +152,13 @@ export default function Sidebar({
                       </div>
                     </div>
                   ) : (
-                    <p className="sidebar-hint">No active workspace</p>
+                    <p className="sidebar-hint">{t("sidebar.noActiveWorkspace")}</p>
                   )}
                 </section>
 
                 <section className="sidebar-section">
                   <div className="sidebar-section-header">
-                    <h3 className="sidebar-section-title">Recent Workspaces</h3>
+                    <h3 className="sidebar-section-title">{t("sidebar.recentWorkspaces")}</h3>
                   </div>
                   <div className="workspace-list">
                     {recentWorkspaces.map((path) => {
@@ -174,7 +177,7 @@ export default function Sidebar({
                       );
                     })}
                     {recentWorkspaces.length === 0 && (
-                      <p className="sidebar-hint">No recent workspaces</p>
+                      <p className="sidebar-hint">{t("sidebar.noRecentWorkspaces")}</p>
                     )}
                   </div>
                 </section>
@@ -184,9 +187,9 @@ export default function Sidebar({
             {activeView === "tasks" && (
               <section className="sidebar-section" style={{ borderBottom: "none" }}>
                 {workspace ? (
-                  <TasksView tasksMd={workspace.tasksMd} />
+                  <TasksView tasksMd={workspace.tasksMd} t={t} />
                 ) : (
-                  <p className="sidebar-hint">Open a workspace to view tasks checklist.</p>
+                  <p className="sidebar-hint">{t("sidebar.openWorkspaceForTasks")}</p>
                 )}
               </section>
             )}
@@ -195,7 +198,7 @@ export default function Sidebar({
               <>
                 <section className="sidebar-section">
                   <div className="sidebar-section-header">
-                    <h3 className="sidebar-section-title">Agent Launchers</h3>
+                    <h3 className="sidebar-section-title">{t("sidebar.agentLaunchers")}</h3>
                   </div>
                   <div className="agent-list">
                     {agents.map((agent) => {
@@ -205,13 +208,13 @@ export default function Sidebar({
                           key={agent.id}
                           className="agent-btn"
                           onClick={() => onAddPane(agent.id)}
-                          title={`Open ${agent.label}`}
+                          title={interpolate(t("sidebar.openAgent"), { agent: agent.label })}
                         >
                           <span className="agent-icon">{AGENT_ICONS[agent.id] ?? "▶"}</span>
                           <span className="agent-label">{agent.label}</span>
                           <span className={`agent-status-badge ${isRunning ? "running" : ""}`}>
                             <span className={`pulse-dot ${isRunning ? "" : "idle"}`}></span>
-                            {isRunning ? "Running" : "Idle"}
+                            {isRunning ? t("common.running") : t("common.idle")}
                           </span>
                         </button>
                       );
@@ -221,10 +224,10 @@ export default function Sidebar({
 
                 <section className="sidebar-section" style={{ borderBottom: "none" }}>
                   <div className="sidebar-section-header">
-                    <h3 className="sidebar-section-title">Active Panes ({panes.length})</h3>
+                    <h3 className="sidebar-section-title">{interpolate(t("sidebar.activePanes"), { count: panes.length })}</h3>
                   </div>
                   <div className="pane-list">
-                    {panes.length === 0 && <p className="sidebar-hint">No open terminal panes</p>}
+                    {panes.length === 0 && <p className="sidebar-hint">{t("sidebar.noOpenPanes")}</p>}
                     {panes.map((pane) => (
                       <div key={pane.id} className="pane-item">
                         <span className="agent-icon">{AGENT_ICONS[pane.agentId] ?? "▶"}</span>
@@ -241,17 +244,17 @@ export default function Sidebar({
                 {hasConflict && (
                   <div className="conflict-banner" style={{ margin: "0 16px 16px" }}>
                     <AlertTriangle size={14} style={{ flexShrink: 0 }} />
-                    <span>Conflict warning: multiple agents modifying {conflictFile}</span>
+                    <span>{interpolate(t("sidebar.conflictWarning"), { file: conflictFile ?? "" })}</span>
                   </div>
                 )}
 
                 <section className="sidebar-section" style={{ borderBottom: "none" }}>
                   <div className="sidebar-section-header">
-                    <h3 className="sidebar-section-title">Live Activity Log</h3>
+                    <h3 className="sidebar-section-title">{t("sidebar.liveActivityLog")}</h3>
                   </div>
                   <div className="activity-feed">
                     {hookEvents.length === 0 && (
-                      <p className="sidebar-hint">No recent file or tool events</p>
+                      <p className="sidebar-hint">{t("sidebar.noRecentEvents")}</p>
                     )}
                     {hookEvents.slice(0, 20).map((ev, i) => (
                       <div key={`${ev.agentId}-${ev.ts}-${i}`} className="activity-row">
@@ -278,10 +281,10 @@ export default function Sidebar({
       {isLogoOpen && (
         <div className="logo-modal-overlay" onClick={() => setIsLogoOpen(false)}>
           <div className="logo-modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="logo-modal-close" onClick={() => setIsLogoOpen(false)} title="Close">
+            <button className="logo-modal-close" onClick={() => setIsLogoOpen(false)} title={t("common.close")}>
               <X size={16} />
             </button>
-            <img src={logoUrl} alt="OggyBridge Logo Large" className="logo-modal-image" />
+            <img src={logoUrl} alt={t("sidebar.logoAlt")} className="logo-modal-image" />
             <h1 className="logo-modal-title">OggyBridge</h1>
             <p className="logo-modal-version">v0.1.0</p>
           </div>

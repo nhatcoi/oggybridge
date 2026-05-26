@@ -1,8 +1,10 @@
 import { CheckSquare, Square } from "./Icons";
+import { Translator, interpolate } from "../i18n";
 import "../styles/TasksView.css";
 
 interface Props {
   tasksMd: string;
+  t: Translator;
 }
 
 interface Task {
@@ -25,17 +27,17 @@ function parseTasks(md: string): Task[] {
   return tasks;
 }
 
-export default function TasksView({ tasksMd }: Props) {
+export default function TasksView({ tasksMd, t }: Props) {
   const tasks = parseTasks(tasksMd);
   const done = tasks.filter((t) => t.done).length;
 
   if (tasks.length === 0) {
-    return <p className="tasks-empty">No tasks yet</p>;
+    return <p className="tasks-empty">{t("tasks.empty")}</p>;
   }
 
   return (
     <div className="tasks-view">
-      <div className="tasks-summary">{done}/{tasks.length} done</div>
+      <div className="tasks-summary">{interpolate(t("tasks.done"), { done, total: tasks.length })}</div>
       {tasks.map((t) => (
         <div key={t.id} className={`task-item${t.done ? " done" : ""}`}>
           <span className="task-check">

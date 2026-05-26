@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { AppSettings, DEFAULT_SETTINGS, DEFAULT_KEYBINDINGS } from "../types";
+import { normalizeLocale } from "../i18n";
 
 const COLOR_MAP: Record<AppSettings["accentColor"], string> = {
   blue:    "#58a6ff",
@@ -22,6 +23,7 @@ export function useSettings() {
   const applySettings = useCallback((cfg: AppSettings) => {
     document.documentElement.style.setProperty("--accent-primary", COLOR_MAP[cfg.accentColor] ?? COLOR_MAP.blue);
     document.documentElement.setAttribute("data-theme", cfg.theme);
+    document.documentElement.setAttribute("lang", cfg.locale);
     document.documentElement.style.setProperty("--terminal-font-size", `${cfg.fontSize}px`);
     document.documentElement.style.setProperty("--terminal-font-family", FONT_FAMILIES[cfg.fontFamily]);
   }, []);
@@ -44,6 +46,7 @@ export function useSettings() {
           const loaded: AppSettings = {
             ...DEFAULT_SETTINGS,
             ...parsed,
+            locale: normalizeLocale(parsed.locale),
             keybindings: { ...DEFAULT_KEYBINDINGS, ...(parsed.keybindings ?? {}) },
           };
           setSettings(loaded);

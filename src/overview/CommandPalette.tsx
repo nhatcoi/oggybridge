@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Search } from "./Icons";
+import { Translator } from "../i18n";
 import "../styles/CommandPalette.css";
 
 export interface Command {
@@ -15,9 +16,10 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   commands: Command[];
+  t: Translator;
 }
 
-export default function CommandPalette({ isOpen, onClose, commands }: Props) {
+export default function CommandPalette({ isOpen, onClose, commands, t }: Props) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -59,7 +61,7 @@ export default function CommandPalette({ isOpen, onClose, commands }: Props) {
             ref={inputRef}
             type="text"
             className="palette-input"
-            placeholder="Type a command or search..."
+            placeholder={t("palette.placeholder")}
             value={query}
             onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
           />
@@ -79,7 +81,7 @@ export default function CommandPalette({ isOpen, onClose, commands }: Props) {
               {cmd.shortcut && <span className="palette-item-shortcut">{cmd.shortcut}</span>}
             </div>
           ))}
-          {filtered.length === 0 && <div className="palette-empty">No results found.</div>}
+          {filtered.length === 0 && <div className="palette-empty">{t("palette.empty")}</div>}
         </div>
       </div>
     </div>

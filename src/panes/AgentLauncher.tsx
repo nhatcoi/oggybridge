@@ -1,9 +1,11 @@
 import { Bot, Zap, Github, Atom, Terminal, Plus } from "../overview/Icons";
+import { Translator } from "../i18n";
 import "../styles/AgentLauncher.css";
 
 interface Props {
   onLaunch: (agentId: string) => void;
   onAddCustom?: () => void;
+  t: Translator;
 }
 
 interface AgentInfo {
@@ -11,7 +13,7 @@ interface AgentInfo {
   className: string;
   icon: React.ReactNode;
   title: string;
-  desc: string;
+  descKey: Parameters<Translator>[0];
   tags: string[];
 }
 
@@ -21,7 +23,7 @@ const LAUNCHABLE_AGENTS: AgentInfo[] = [
     className: "claude",
     icon: <Bot size={20} style={{ color: "var(--accent-claude)" }} />,
     title: "Claude Code",
-    desc: "Anthropic's Claude Code CLI. Interactive agent optimized for editing, refactoring, and git operations.",
+    descKey: "launcher.desc.claude",
     tags: ["AI", "Anthropic", "CLI"],
   },
   {
@@ -29,7 +31,7 @@ const LAUNCHABLE_AGENTS: AgentInfo[] = [
     className: "codex",
     icon: <Zap size={20} style={{ color: "var(--accent-codex)" }} />,
     title: "Codex CLI",
-    desc: "OpenAI Codex-powered terminal interface. Great for quick scaffolding, search, and coding tasks.",
+    descKey: "launcher.desc.codex",
     tags: ["AI", "OpenAI", "CLI"],
   },
   {
@@ -37,7 +39,7 @@ const LAUNCHABLE_AGENTS: AgentInfo[] = [
     className: "copilot",
     icon: <Github size={20} style={{ color: "var(--accent-copilot)" }} />,
     title: "GitHub Copilot CLI",
-    desc: "GitHub's official command line pair programmer. Translates natural language to shell commands.",
+    descKey: "launcher.desc.copilot",
     tags: ["AI", "GitHub", "CLI"],
   },
   {
@@ -45,7 +47,7 @@ const LAUNCHABLE_AGENTS: AgentInfo[] = [
     className: "antigravity",
     icon: <Atom size={20} style={{ color: "var(--accent-antigravity)" }} />,
     title: "Antigravity CLI",
-    desc: "Local-first agentic coding client. Excels at precision structural edits and codebase analysis.",
+    descKey: "launcher.desc.antigravity",
     tags: ["AI", "Local", "CLI"],
   },
   {
@@ -53,17 +55,17 @@ const LAUNCHABLE_AGENTS: AgentInfo[] = [
     className: "shell",
     icon: <Terminal size={20} style={{ color: "var(--accent-shell)" }} />,
     title: "System Shell",
-    desc: "Open a default persistent system shell (bash/zsh) inside the workspace environment.",
+    descKey: "launcher.desc.shell",
     tags: ["System", "Shell"],
   },
 ];
 
-export default function AgentLauncher({ onLaunch, onAddCustom }: Props) {
+export default function AgentLauncher({ onLaunch, onAddCustom, t }: Props) {
   return (
     <div className="launcher-container">
       <div className="launcher-header">
-        <h2>Launch a new agent</h2>
-        <p>Launch multiple agents side-by-side to collaborate in this workspace.</p>
+        <h2>{t("launcher.title")}</h2>
+        <p>{t("launcher.subtitle")}</p>
       </div>
       <div className="launcher-grid">
         {LAUNCHABLE_AGENTS.map((agent) => (
@@ -72,22 +74,22 @@ export default function AgentLauncher({ onLaunch, onAddCustom }: Props) {
               <span className="launcher-card-icon">{agent.icon}</span>
               <span className="launcher-card-title">{agent.title}</span>
             </div>
-            <p className="launcher-card-desc">{agent.desc}</p>
+            <p className="launcher-card-desc">{t(agent.descKey)}</p>
             <div className="launcher-card-tags">
               {agent.tags.map((tag) => (
                 <span key={tag} className="launcher-card-tag">{tag}</span>
               ))}
             </div>
             <button className="launcher-card-btn" onClick={() => onLaunch(agent.id)}>
-              Launch
+              {t("common.launch")}
             </button>
           </div>
         ))}
         <div className="launcher-card custom" onClick={() => onAddCustom?.()}>
           <Plus size={32} className="launcher-card-add-icon" />
-          <span className="launcher-card-add-text">Add Custom Agent</span>
+          <span className="launcher-card-add-text">{t("launcher.addCustom")}</span>
           <span className="launcher-card-add-sub">
-            Configure a custom command, path, and environment.
+            {t("launcher.addCustomHelp")}
           </span>
         </div>
       </div>

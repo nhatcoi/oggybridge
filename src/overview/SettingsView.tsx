@@ -2,6 +2,7 @@ import { X, Sliders, Palette, Terminal, Layout, Bot, Keyboard, Cpu } from "./Ico
 import { AppSettings, ActionId, ACTION_LABELS, DEFAULT_KEYBINDINGS, Keybinding } from "../types";
 import { clampZoom, ZOOM_STEP, ZOOM_DEFAULT, ZOOM_MIN, ZOOM_MAX } from "../hooks/useZoom";
 import { formatBinding } from "../utils";
+import { LOCALE_OPTIONS, Translator, actionLabelKey, interpolate } from "../i18n";
 import "../styles/SettingsView.css";
 import { useState, useEffect, useCallback } from "react";
 
@@ -10,6 +11,7 @@ interface Props {
   onClose: () => void;
   settings: AppSettings;
   onSaveSettings: (settings: AppSettings) => void;
+  t: Translator;
 }
 
 type Tab =
@@ -34,7 +36,24 @@ const tabIcons: Record<Tab, React.ComponentType<{ size?: number | string; classN
 const ALL_TABS: Tab[] = ["general", "appearance", "terminal", "layout", "agents", "keybindings", "advanced"];
 const ACTION_IDS = Object.keys(ACTION_LABELS) as ActionId[];
 
-export default function SettingsView({ isOpen, onClose, settings, onSaveSettings }: Props) {
+const TAB_LABEL_KEYS: Record<Tab, Parameters<Translator>[0]> = {
+  general:     "settings.tab.general",
+  appearance:  "settings.tab.appearance",
+  terminal:    "settings.tab.terminal",
+  layout:      "settings.tab.layout",
+  agents:      "settings.tab.agents",
+  keybindings: "settings.tab.keybindings",
+  advanced:    "settings.tab.advanced",
+};
+
+const AGENT_NAMES: Record<string, string> = {
+  "claude-code": "Claude Code",
+  codex:         "Codex",
+  copilot:       "GitHub Copilot CLI",
+  antigravity:   "Antigravity",
+};
+
+export default function SettingsView({ isOpen, onClose, settings, onSaveSettings, t }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("general");
   const [recordingAction, setRecordingAction] = useState<ActionId | null>(null);
 
@@ -91,21 +110,30 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
         return (
           <>
             <div className="settings-toggle-row">
-              <span className="settings-toggle-label">Open last workspace on launch</span>
+              <span className="settings-toggle-label">{t("settings.general.openLastWorkspace")}</span>
               <label className="settings-toggle">
                 <input type="checkbox" checked={settings.startupLastWs} onChange={(e) => updateSetting("startupLastWs", e.target.checked)} />
                 <span className="settings-slider"></span>
               </label>
             </div>
+            <div className="settings-form-group">
+              <label className="settings-label">{t("locale.label")}</label>
+              <select className="settings-select" value={settings.locale} onChange={(e) => updateSetting("locale", e.target.value as AppSettings["locale"])}>
+                {LOCALE_OPTIONS.map((locale) => (
+                  <option key={locale.value} value={locale.value}>{locale.label}</option>
+                ))}
+              </select>
+              <p className="settings-help-text">{t("locale.help")}</p>
+            </div>
             <div className="settings-toggle-row">
-              <span className="settings-toggle-label">Start minimized in system tray</span>
+              <span className="settings-toggle-label">{t("settings.general.startMinimized")}</span>
               <label className="settings-toggle">
                 <input type="checkbox" />
                 <span className="settings-slider"></span>
               </label>
             </div>
             <div className="settings-toggle-row">
-              <span className="settings-toggle-label">Confirm before closing multiple panes</span>
+              <span className="settings-toggle-label">{t("settings.general.confirmClose")}</span>
               <label className="settings-toggle">
                 <input type="checkbox" defaultChecked />
                 <span className="settings-slider"></span>
@@ -117,15 +145,15 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
         return (
           <>
             <div className="settings-form-group">
-              <label className="settings-label">Theme</label>
+              <label className="settings-label">{t("settings.appearance.theme")}</label>
               <select className="settings-select" value={settings.theme} onChange={(e) => updateSetting("theme", e.target.value as AppSettings["theme"])}>
-                <option value="dark">Dark (Deep Carbon)</option>
-                <option value="light">Light</option>
-                <option value="system">System Default</option>
+                <option value="dark">{t("settings.appearance.theme.dark")}</option>
+                <option value="light">{t("settings.appearance.theme.light")}</option>
+                <option value="system">{t("settings.appearance.theme.system")}</option>
               </select>
             </div>
             <div className="settings-form-group">
-              <label className="settings-label">Accent Color</label>
+              <label className="settings-label">{t("settings.appearance.accentColor")}</label>
               <div className="settings-color-palette">
                 {(["blue", "green", "orange", "purple", "magenta"] as const).map((color) => (
                   <div
@@ -145,7 +173,7 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
               </div>
             </div>
             <div className="settings-form-group">
-              <label className="settings-label">Zoom Level</label>
+              <label className="settings-label">{t("settings.appearance.zoomLevel")}</label>
               <div className="settings-zoom-row">
                 <button
                   className="settings-zoom-btn"
@@ -159,10 +187,10 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
                   disabled={settings.zoomLevel >= ZOOM_MAX}
                 >+</button>
                 {settings.zoomLevel !== ZOOM_DEFAULT && (
-                  <button className="settings-zoom-reset" onClick={() => updateSetting("zoomLevel", ZOOM_DEFAULT)}>Reset</button>
+                  <button className="settings-zoom-reset" onClick={() => updateSetting("zoomLevel", ZOOM_DEFAULT)}>{t("common.reset")}</button>
                 )}
               </div>
-              <p className="settings-help-text">Scales the entire application window. Range: {ZOOM_MIN * 100}%–{ZOOM_MAX * 100}%. Shortcut: ⌘+ / ⌘−</p>
+              <p className="settings-help-text">{t("settings.appearance.zoomHelp")}</p>
             </div>
           </>
         );
@@ -170,7 +198,7 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
         return (
           <>
             <div className="settings-form-group">
-              <label className="settings-label">Font Family</label>
+              <label className="settings-label">{t("settings.terminal.fontFamily")}</label>
               <select className="settings-select" value={settings.fontFamily} onChange={(e) => updateSetting("fontFamily", e.target.value as AppSettings["fontFamily"])}>
                 <option value="jetbrains">JetBrains Mono</option>
                 <option value="fira">Fira Code</option>
@@ -178,7 +206,7 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
               </select>
             </div>
             <div className="settings-form-group">
-              <label className="settings-label">Font Size</label>
+              <label className="settings-label">{t("settings.terminal.fontSize")}</label>
               <select className="settings-select" value={settings.fontSize.toString()} onChange={(e) => updateSetting("fontSize", parseInt(e.target.value))}>
                 <option value="12">12px</option>
                 <option value="13">13px</option>
@@ -187,7 +215,7 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
               </select>
             </div>
             <div className="settings-toggle-row">
-              <span className="settings-toggle-label">Terminal Cursor Blinking</span>
+              <span className="settings-toggle-label">{t("settings.terminal.cursorBlinking")}</span>
               <label className="settings-toggle">
                 <input type="checkbox" defaultChecked />
                 <span className="settings-slider"></span>
@@ -200,7 +228,9 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
           <>
             {(["claude-code", "codex", "copilot", "antigravity"] as const).map((id) => (
               <div key={id} className="settings-toggle-row">
-                <span className="settings-toggle-label">Enable {id === "claude-code" ? "Claude Code" : id === "codex" ? "Codex" : id === "copilot" ? "GitHub Copilot CLI" : "Antigravity"} Agent</span>
+                <span className="settings-toggle-label">
+                  {interpolate(t("settings.agents.enable"), { agent: AGENT_NAMES[id] })}
+                </span>
                 <label className="settings-toggle">
                   <input type="checkbox" checked={settings.enabledAgents.includes(id)} onChange={() => toggleAgent(id)} />
                   <span className="settings-slider"></span>
@@ -212,22 +242,22 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
       case "layout":
         return (
           <div className="settings-form-group">
-            <label className="settings-label">Max terminal panes per row</label>
+            <label className="settings-label">{t("settings.layout.maxPanes")}</label>
             <select className="settings-select" value={settings.maxPerRow.toString()} onChange={(e) => updateSetting("maxPerRow", parseInt(e.target.value))}>
-              <option value="1">1 Pane</option>
-              <option value="2">2 Panes (Default)</option>
-              <option value="3">3 Panes</option>
-              <option value="4">4 Panes</option>
-              <option value="6">6 Panes</option>
+              <option value="1">{t("settings.layout.onePane")}</option>
+              <option value="2">{t("settings.layout.twoPanes")}</option>
+              <option value="3">{t("settings.layout.threePanes")}</option>
+              <option value="4">{t("settings.layout.fourPanes")}</option>
+              <option value="6">{t("settings.layout.sixPanes")}</option>
             </select>
-            <p className="settings-help-text">Controls the grid organization when multiple agent terminals are launched.</p>
+            <p className="settings-help-text">{t("settings.layout.help")}</p>
           </div>
         );
       case "keybindings":
         return (
           <div className="settings-keybindings-list">
             <p className="settings-help-text" style={{ marginBottom: 16 }}>
-              Click a shortcut to record a new one. Press <kbd className="settings-keybindings-kbd">Esc</kbd> to cancel.
+              {t("settings.keybindings.help")}
             </p>
             {ACTION_IDS.map((action) => {
               const binding = settings.keybindings[action];
@@ -235,17 +265,17 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
               const isRecording = recordingAction === action;
               return (
                 <div key={action} className="settings-kb-row">
-                  <span className="settings-kb-label">{ACTION_LABELS[action]}</span>
+                  <span className="settings-kb-label">{t(actionLabelKey(action))}</span>
                   <div className="settings-kb-controls">
                     <button
                       className={`settings-kb-shortcut ${isRecording ? "recording" : ""}`}
                       onClick={() => setRecordingAction(isRecording ? null : action)}
-                      title={isRecording ? "Press a key combo (Esc to cancel)" : "Click to change"}
+                      title={isRecording ? t("settings.keybindings.recordTitle") : t("settings.keybindings.changeTitle")}
                     >
-                      {isRecording ? "Press shortcut…" : formatBinding(binding)}
+                      {isRecording ? t("settings.keybindings.pressShortcut") : formatBinding(binding)}
                     </button>
                     {!isDefault && (
-                      <button className="settings-kb-reset" onClick={() => resetBinding(action)} title="Reset to default">
+                      <button className="settings-kb-reset" onClick={() => resetBinding(action)} title={t("settings.keybindings.resetTitle")}>
                         ↺
                       </button>
                     )}
@@ -259,8 +289,8 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
         return (
           <div className="settings-toggle-row">
             <div>
-              <span className="settings-toggle-label">Enable anonymous crash logs & telemetry</span>
-              <p className="settings-help-text">Helps us diagnose bugs and improve OggyBridge desktop experience.</p>
+              <span className="settings-toggle-label">{t("settings.advanced.telemetry")}</span>
+              <p className="settings-help-text">{t("settings.advanced.telemetryHelp")}</p>
             </div>
             <label className="settings-toggle">
               <input type="checkbox" checked={settings.telemetry} onChange={(e) => updateSetting("telemetry", e.target.checked)} />
@@ -275,7 +305,7 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings-container" onClick={(e) => e.stopPropagation()}>
         <div className="settings-sidebar">
-          <div className="settings-sidebar-header">Settings</div>
+          <div className="settings-sidebar-header">{t("settings.title")}</div>
           {ALL_TABS.map((tab) => {
             const Icon = tabIcons[tab];
             return (
@@ -285,14 +315,14 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
                 onClick={() => setActiveTab(tab)}
               >
                 <Icon size={14} className="settings-tab-icon" />
-                <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+                <span>{t(TAB_LABEL_KEYS[tab])}</span>
               </button>
             );
           })}
         </div>
         <div className="settings-content">
           <div className="settings-content-header">
-            <h3>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h3>
+            <h3>{t(TAB_LABEL_KEYS[activeTab])}</h3>
             <button className="settings-close-btn" onClick={onClose}>
               <X size={16} />
             </button>

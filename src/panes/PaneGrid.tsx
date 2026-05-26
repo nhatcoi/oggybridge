@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Columns, X, Folder } from "../overview/Icons";
 import { AgentPane, WorkspaceInfo } from "../types";
 import { AGENTS } from "../agents";
+import { Translator } from "../i18n";
 import { shortPath } from "../utils";
 import TerminalPane from "./TerminalPane";
 import AgentLauncher from "./AgentLauncher";
@@ -13,6 +14,7 @@ interface Props {
   workspace: WorkspaceInfo | null;
   onClose: (id: string) => void;
   onAddPane: (agentId: string) => void;
+  t: Translator;
 }
 
 const DIVIDER_PX = 6;
@@ -31,7 +33,7 @@ function getAgentClass(agentId: string): string {
   return "shell";
 }
 
-export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPane }: Props) {
+export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPane, t }: Props) {
   const [focused, setFocused] = useState<string | null>(null);
   const [ratios, setRatios] = useState<Record<string, number>>({});
   const containerRef = useRef<HTMLDivElement>(null);
@@ -50,7 +52,7 @@ export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPa
   if (panes.length === 0) {
     return (
       <div className="pane-empty-container">
-        <AgentLauncher onLaunch={onAddPane} />
+        <AgentLauncher onLaunch={onAddPane} t={t} />
       </div>
     );
   }
@@ -80,7 +82,7 @@ export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPa
                       <span className="pane-title">{pane.label}</span>
                       <span className="pane-status-badge">
                         <span className="pulse-dot"></span>
-                        Running
+                        {t("common.running")}
                       </span>
                       {workspace && (
                         <span className="pane-path" title={workspace.path}>
@@ -93,7 +95,7 @@ export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPa
                       <button
                         className="pane-action-btn"
                         onClick={() => onAddPane(pane.agentId)}
-                        title="Split horizontally"
+                        title={t("pane.split")}
                       >
                         <Columns size={12} />
                       </button>
@@ -101,7 +103,7 @@ export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPa
                         className="pane-action-btn close"
                         onMouseDown={(e) => e.stopPropagation()}
                         onClick={(e) => { e.stopPropagation(); onClose(pane.id); }}
-                        title="Close pane"
+                        title={t("pane.close")}
                       >
                         <X size={12} />
                       </button>

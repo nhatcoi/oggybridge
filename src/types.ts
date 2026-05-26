@@ -62,6 +62,7 @@ export const DEFAULT_KEYBINDINGS: Keybindings = {
 };
 
 export interface AppSettings {
+  locale: "en" | "vi";
   theme: "dark" | "light" | "system";
   accentColor: "blue" | "green" | "orange" | "purple" | "magenta";
   fontSize: number;
@@ -75,6 +76,7 @@ export interface AppSettings {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  locale: "en",
   theme: "dark",
   accentColor: "blue",
   fontSize: 14,

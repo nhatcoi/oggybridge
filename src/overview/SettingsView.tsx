@@ -165,14 +165,14 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
             <div className="settings-toggle-row">
               <span className="settings-toggle-label">{t("settings.general.startMinimized")}</span>
               <label className="settings-toggle">
-                <input type="checkbox" />
+                <input type="checkbox" checked={settings.startMinimizedToTray} onChange={(e) => updateSetting("startMinimizedToTray", e.target.checked)} />
                 <span className="settings-slider"></span>
               </label>
             </div>
             <div className="settings-toggle-row">
               <span className="settings-toggle-label">{t("settings.general.confirmClose")}</span>
               <label className="settings-toggle">
-                <input type="checkbox" defaultChecked />
+                <input type="checkbox" checked={settings.confirmCloseMultiplePanes} onChange={(e) => updateSetting("confirmCloseMultiplePanes", e.target.checked)} />
                 <span className="settings-slider"></span>
               </label>
             </div>

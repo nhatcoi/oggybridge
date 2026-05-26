@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { open as openDirDialog } from "@tauri-apps/plugin-dialog";
+import { open as openDirDialog, ask } from "@tauri-apps/plugin-dialog";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   FolderOpen, X, Settings, Bot, Zap, Github, Compass, Terminal, ZoomIn, ZoomOut,
 } from "./overview/Icons";
@@ -47,6 +48,12 @@ export default function App() {
   const didRestoreWorkspace = useRef(false);
   const restoredPaneWorkspace = useRef<string | null>(null);
   const skipNextPaneSessionSave = useRef<string | null>(null);
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+  const panesRef = useRef(panes);
+  panesRef.current = panes;
+  const tRef = useRef(t);
+  tRef.current = t;
 
   const saveZoom = useCallback((level: number) => {
     saveSettings({ ...settings, zoomLevel: level });
@@ -167,6 +174,25 @@ export default function App() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [panes, settings.keybindings, handleSelectWorkspaceDialog, removePane, zoomIn, zoomOut, zoomReset]);
+
+  useEffect(() => {
+    if (!("__TAURI_INTERNALS__" in window)) return;
+    const appWindow = getCurrentWindow();
+    const unlistenPromise = appWindow.onCloseRequested(async (event) => {
+      const s = settingsRef.current;
+      const p = panesRef.current;
+      if (s.startMinimizedToTray) return;
+      if (s.confirmCloseMultiplePanes && p.length > 1) {
+        event.preventDefault();
+        const confirmed = await ask(
+          interpolate(tRef.current("dialog.confirmClose.message"), { count: p.length }),
+          { title: tRef.current("dialog.confirmClose.title"), kind: "warning" }
+        );
+        if (confirmed) await appWindow.destroy();
+      }
+    });
+    return () => { unlistenPromise.then((f) => f()); };
+  }, []);
 
   const commands: Command[] = useMemo(() => {
     const kb = settings.keybindings;

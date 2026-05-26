@@ -71,6 +71,8 @@ export interface AppSettings {
   fontFamily: "jetbrains" | "fira" | "system";
   startupLastWs: boolean;
   savePaneSessions: boolean;
+  startMinimizedToTray: boolean;
+  confirmCloseMultiplePanes: boolean;
   telemetry: boolean;
   enabledAgents: string[];
   maxPerRow: number;
@@ -86,6 +88,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   fontFamily: "jetbrains",
   startupLastWs: true,
   savePaneSessions: true,
+  startMinimizedToTray: false,
+  confirmCloseMultiplePanes: true,
   telemetry: false,
   enabledAgents: ["claude-code", "codex", "copilot", "antigravity", "shell"],
   maxPerRow: 2,

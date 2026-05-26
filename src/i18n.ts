@@ -139,6 +139,9 @@ const en = {
 
   "pane.split": "Split horizontally",
   "pane.close": "Close pane",
+
+  "dialog.confirmClose.title": "Close OggyBridge",
+  "dialog.confirmClose.message": "You have {count} panes open. Close anyway?",
 } as const;
 
 const vi: Record<TranslationKey, string> = {
@@ -271,6 +274,9 @@ const vi: Record<TranslationKey, string> = {
 
   "pane.split": "Chia ngang",
   "pane.close": "Đóng pane",
+
+  "dialog.confirmClose.title": "Đóng OggyBridge",
+  "dialog.confirmClose.message": "Bạn đang có {count} pane mở. Đóng lại?",
 };
 
 const dictionaries: Record<Locale, Record<TranslationKey, string>> = { en, vi };

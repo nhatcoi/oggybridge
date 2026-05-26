@@ -7,7 +7,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, State};
 
 // ── state ────────────────────────────────────────────────────────────────────
 
@@ -279,6 +279,33 @@ hook_port = 0
 mcp_socket = ".agents/coordinator.sock"
 conflict_window_secs = 30
 "#;
+
+// ── Tauri commands ────────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn open_workspace(
+    path: String,
+    app: AppHandle,
+    store: State<'_, WorkspaceStore>,
+) -> Result<WorkspaceInfo, String> {
+    let p = std::path::Path::new(&path);
+    let (handle, info) = open(p, app).await.map_err(|e| e.to_string())?;
+    *store.0.lock().unwrap() = Some(handle);
+    Ok(info)
+}
+
+#[tauri::command]
+pub fn close_workspace(store: State<'_, WorkspaceStore>) -> Result<(), String> {
+    *store.0.lock().unwrap() = None;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn read_workspace_file(path: String) -> Result<String, String> {
+    fs::read_to_string(&path).map_err(|e| e.to_string())
+}
+
+// ── templates ─────────────────────────────────────────────────────────────────
 
 const AGENTS_MD_TEMPLATE: &str = r#"# OggyBridge Coordination Protocol
 

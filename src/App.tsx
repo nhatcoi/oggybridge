@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { open as openDirDialog, ask } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
@@ -82,6 +83,11 @@ export default function App() {
         ? { ...pane, sessionId }
         : pane
     )));
+  }, []);
+
+  const handleSendToPane = useCallback((paneId: string, text: string) => {
+    if (!("__TAURI_INTERNALS__" in window)) return;
+    invoke("write_pty", { id: paneId, data: text }).catch(() => {});
   }, []);
 
   const resizeEditorPane = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
@@ -307,6 +313,8 @@ export default function App() {
                   workspace={workspace}
                   layout={editorLayout}
                   onLayoutChange={setEditorLayout}
+                  panes={panes}
+                  onSendToPane={handleSendToPane}
                   t={t}
                 />
               </div>
@@ -318,6 +326,8 @@ export default function App() {
                 workspace={workspace}
                 layout={editorLayout}
                 onLayoutChange={setEditorLayout}
+                panes={panes}
+                onSendToPane={handleSendToPane}
                 t={t}
               />
             </div>

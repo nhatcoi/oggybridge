@@ -168,3 +168,9 @@
   background: var(--bg-primary);
   overflow: hidden;
 }
+
+.pane-terminal.drop-target {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+  background: rgba(88, 166, 255, 0.06);
+}

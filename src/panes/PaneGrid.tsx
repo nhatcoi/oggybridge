@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { Columns, X, Folder } from "../overview/Icons";
+import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
+import { Columns, Folder, X } from "lucide-react";
 import { AgentPane, AgentConfig, CustomAgentDef, WorkspaceInfo } from "../types";
 import { AGENTS } from "../agents";
 import { Translator } from "../i18n";
@@ -19,8 +21,6 @@ interface Props {
   customAgents: CustomAgentDef[];
   t: Translator;
 }
-
-const DIVIDER_PX = 6;
 
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -58,15 +58,18 @@ function buildArgs(
 
 export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPane, onPaneSessionId, agentConfigs, customAgents, t }: Props) {
   const [focused, setFocused] = useState<string | null>(null);
-  const [ratios, setRatios] = useState<Record<string, number>>({});
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+
+  const handleDrop = (paneId: string, e: React.DragEvent) => {
+    e.preventDefault();
+    setDropTarget(null);
+    const text = e.dataTransfer.getData("text/plain");
+    if (text && ("__TAURI_INTERNALS__" in window)) {
+      invoke("write_pty", { id: paneId, data: text }).catch(() => {});
+    }
+  };
 
   useEffect(() => {
-    setRatios((prev) => {
-      const next: Record<string, number> = {};
-      for (const p of panes) next[p.id] = prev[p.id] ?? 1;
-      return next;
-    });
     if (panes.length > 0 && (!focused || !panes.some((p) => p.id === focused))) {
       setFocused(panes[panes.length - 1].id);
     }
@@ -83,123 +86,83 @@ export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPa
   const rows = chunk(panes, Math.max(1, maxPerRow));
 
   return (
-    <div className="pane-grid-outer" ref={containerRef}>
+    <div className="pane-grid-outer">
       {rows.map((row, rowIdx) => (
-        <div key={rowIdx} className="pane-row">
+        <PanelGroup key={rowIdx} orientation="horizontal" className="pane-row">
           {row.map((pane, colIdx) => {
             const agent = AGENTS.find((a) => a.id === pane.agentId)
               ?? customAgents.find((a) => a.id === pane.agentId);
             const isFocused = focused === pane.id;
-            const ratio = ratios[pane.id] ?? 1;
-            const nextPane = row[colIdx + 1];
             const agentClass = getAgentClass(pane.agentId);
 
             return (
-              <div key={pane.id} style={{ display: "contents" }}>
-                <div
-                  className={`pane-wrapper ${agentClass}${isFocused ? " focused" : ""}`}
-                  style={{ flex: ratio }}
-                  onMouseDown={() => setFocused(pane.id)}
-                >
-                  <div className="pane-titlebar">
-                    <div className="pane-titlebar-left">
-                      <span className="pane-title">{pane.label}</span>
-                      <span className="pane-status-badge">
-                        <span className="pulse-dot"></span>
-                        {t("common.running")}
-                      </span>
-                      {workspace && (
-                        <span className="pane-path" title={workspace.path}>
-                          <Folder size={11} style={{ marginRight: 4, display: "inline-block", verticalAlign: "middle" }} />
-                          {shortPath(workspace.path)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="pane-titlebar-right">
-                      <button
-                        className="pane-action-btn"
-                        onClick={() => onAddPane(pane.agentId)}
-                        title={t("pane.split")}
-                      >
-                        <Columns size={12} />
-                      </button>
-                      <button
-                        className="pane-action-btn close"
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(e) => { e.stopPropagation(); onClose(pane.id); }}
-                        title={t("pane.close")}
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="pane-terminal">
-                    <TerminalPane
-                      id={pane.id}
-                      agentId={pane.agentId}
-                      cmd={agent?.cmd || undefined}
-                      args={buildArgs(pane.agentId, pane.sessionId, agentConfigs)}
-                      cwd={workspace?.path}
-                      onSessionId={(sessionId) => onPaneSessionId(pane.id, sessionId)}
-                    />
-                  </div>
-                </div>
-
-                {nextPane && (
-                  <Divider
-                    leftId={pane.id}
-                    rightId={nextPane.id}
-                    ratios={ratios}
-                    containerRef={containerRef}
-                    setRatios={setRatios}
-                  />
+              <>
+                {colIdx > 0 && (
+                  <PanelResizeHandle className="pane-divider" />
                 )}
-              </div>
+                <Panel
+                  key={pane.id}
+                  minSize={10}
+                  defaultSize={100 / row.length}
+                >
+                  <div
+                    className={`pane-wrapper ${agentClass}${isFocused ? " focused" : ""}`}
+                    onMouseDown={() => setFocused(pane.id)}
+                  >
+                    <div className="pane-titlebar">
+                      <div className="pane-titlebar-left">
+                        <span className="pane-title">{pane.label}</span>
+                        <span className="pane-status-badge">
+                          <span className="pulse-dot"></span>
+                          {t("common.running")}
+                        </span>
+                        {workspace && (
+                          <span className="pane-path" title={workspace.path}>
+                            <Folder size={11} style={{ marginRight: 4, display: "inline-block", verticalAlign: "middle" }} />
+                            {shortPath(workspace.path)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="pane-titlebar-right">
+                        <button
+                          className="pane-action-btn"
+                          onClick={() => onAddPane(pane.agentId)}
+                          title={t("pane.split")}
+                        >
+                          <Columns size={12} />
+                        </button>
+                        <button
+                          className="pane-action-btn close"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => { e.stopPropagation(); onClose(pane.id); }}
+                          title={t("pane.close")}
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    </div>
+                    <div
+                      className={`pane-terminal${dropTarget === pane.id ? " drop-target" : ""}`}
+                      onDragOver={(e) => { e.preventDefault(); setDropTarget(pane.id); }}
+                      onDragLeave={() => setDropTarget(null)}
+                      onDrop={(e) => handleDrop(pane.id, e)}
+                    >
+                      <TerminalPane
+                        id={pane.id}
+                        agentId={pane.agentId}
+                        cmd={agent?.cmd || undefined}
+                        args={buildArgs(pane.agentId, pane.sessionId, agentConfigs)}
+                        cwd={workspace?.path}
+                        onSessionId={(sessionId) => onPaneSessionId(pane.id, sessionId)}
+                      />
+                    </div>
+                  </div>
+                </Panel>
+              </>
             );
           })}
-        </div>
+        </PanelGroup>
       ))}
     </div>
   );
-}
-
-// ── Divider ──────────────────────────────────────────────────────────────────
-
-interface DividerProps {
-  leftId: string;
-  rightId: string;
-  ratios: Record<string, number>;
-  containerRef: React.RefObject<HTMLDivElement | null>;
-  setRatios: React.Dispatch<React.SetStateAction<Record<string, number>>>;
-}
-
-function Divider({ leftId, rightId, ratios, containerRef, setRatios }: DividerProps) {
-  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.currentTarget.setPointerCapture(e.pointerId);
-
-    const startX = e.clientX;
-    const containerWidth = (containerRef.current?.offsetWidth ?? 400) - DIVIDER_PX;
-    const snapLeft = ratios[leftId] ?? 1;
-    const snapRight = ratios[rightId] ?? 1;
-    const totalRatioSum = Object.values(ratios).reduce((a, b) => a + b, 0);
-    const pxPerRatio = containerWidth / totalRatioSum;
-
-    const onMove = (me: PointerEvent) => {
-      const deltaRatio = (me.clientX - startX) / pxPerRatio;
-      const newLeft = Math.max(0.1, snapLeft + deltaRatio);
-      const newRight = Math.max(0.1, snapLeft + snapRight - newLeft);
-      setRatios((prev) => ({ ...prev, [leftId]: newLeft, [rightId]: newRight }));
-    };
-
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    };
-
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  };
-
-  return <div className="pane-divider" onPointerDown={onPointerDown} />;
 }

@@ -1,6 +1,7 @@
 mod agent_session;
 mod config;
 mod pty;
+mod system;
 mod tray;
 mod workspace;
 
@@ -29,15 +30,18 @@ pub fn run() {
             workspace::list_workspace_files,
             workspace::read_workspace_text_file,
             workspace::write_workspace_text_file,
+            workspace::create_workspace_dir,
+            workspace::rename_workspace_item,
+            workspace::delete_workspace_item,
             agent_session::detect_agent_session,
-            config::read_settings,
-            config::write_settings,
-            config::read_session_state,
-            config::write_session_state,
+            config::settings::read_settings,
+            config::settings::write_settings,
+            config::session::read_session_state,
+            config::session::write_session_state,
             config::get_config_paths,
-            config::open_settings_file,
-            config::open_session_file,
-            config::open_config_dir,
+            system::open_settings_file,
+            system::open_session_file,
+            system::open_config_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

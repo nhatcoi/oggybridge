@@ -1,4 +1,4 @@
-import { Bot, Zap, Github, Compass, Terminal } from "./overview/Icons";
+import { Bot, Zap, Compass, Terminal, GitFork } from "lucide-react";
 
 export const AGENTS = [
   { id: "claude-code", label: "Claude Code",      cmd: "claude" },
@@ -11,7 +11,7 @@ export const AGENTS = [
 export const AGENT_ICONS: Record<string, React.ReactNode> = {
   "claude-code": <Bot size={15} />,
   "codex":       <Zap size={15} />,
-  "copilot":     <Github size={15} />,
+  "copilot":     <GitFork size={15} />,
   "antigravity": <Compass size={15} />,
   "shell":       <Terminal size={15} />,
 };

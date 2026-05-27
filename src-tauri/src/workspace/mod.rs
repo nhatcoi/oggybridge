@@ -1,3 +1,6 @@
+pub mod commands;
+pub use commands::*;
+
 use oggybridge_hook_bridge::{HookBridge, HookEvent};
 use oggybridge_mcp_server::McpServer;
 use notify::{RecommendedWatcher, RecursiveMode};
@@ -7,7 +10,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter};
 
 // ── state ────────────────────────────────────────────────────────────────────
 
@@ -28,7 +31,7 @@ impl Drop for WorkspaceHandle {
 
 pub struct WorkspaceStore(pub Mutex<Option<WorkspaceHandle>>);
 
-// ── serialisable types returned to frontend ──────────────────────────────────
+// ── serialisable types ───────────────────────────────────────────────────────
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -63,15 +66,11 @@ pub struct WriteWorkspaceFileRequest {
     pub content: String,
 }
 
-// ── public API ───────────────────────────────────────────────────────────────
+// ── core open logic ──────────────────────────────────────────────────────────
 
-pub async fn open(
-    workspace: &Path,
-    app: AppHandle,
-) -> anyhow::Result<(WorkspaceHandle, WorkspaceInfo)> {
+pub async fn open(workspace: &Path, app: AppHandle) -> anyhow::Result<(WorkspaceHandle, WorkspaceInfo)> {
     let mut info = init_agents_dir(workspace)?;
 
-    // Start hook bridge; forward events to frontend via Tauri event
     let app_bridge = app.clone();
     let bridge = HookBridge::start(move |event: HookEvent| {
         let _ = app_bridge.emit("hook-event", &event);
@@ -81,12 +80,10 @@ pub async fn open(
     write_hook_scripts(workspace, bridge.port, &bridge.token)?;
     info.hook_port = bridge.port;
 
-    // Start MCP coordinator server
     let mcp = McpServer::start(workspace.to_path_buf()).await?;
     write_mcp_json(workspace, mcp.port)?;
     info.mcp_port = mcp.port;
 
-    // File watcher for .agents/
     let agents_dir = workspace.join(".agents");
     let app_watcher = app.clone();
     let mut debouncer = new_debouncer(
@@ -110,9 +107,7 @@ pub async fn open(
             }
         },
     )?;
-    debouncer
-        .watcher()
-        .watch(&agents_dir, RecursiveMode::Recursive)?;
+    debouncer.watcher().watch(&agents_dir, RecursiveMode::Recursive)?;
 
     let handle = WorkspaceHandle {
         path: workspace.to_owned(),
@@ -122,6 +117,72 @@ pub async fn open(
     };
 
     Ok((handle, info))
+}
+
+// ── file helpers used by commands ────────────────────────────────────────────
+
+pub(crate) fn safe_workspace_path(workspace_path: &str, relative_path: &str) -> Result<PathBuf, String> {
+    let workspace_root = PathBuf::from(workspace_path)
+        .canonicalize()
+        .map_err(|e| e.to_string())?;
+    let path = workspace_root.join(relative_path);
+    let parent = path
+        .parent()
+        .ok_or_else(|| "Invalid file path".to_string())?
+        .canonicalize()
+        .map_err(|e| e.to_string())?;
+    if !parent.starts_with(&workspace_root) {
+        return Err("File is outside the workspace".to_string());
+    }
+    Ok(path)
+}
+
+pub(crate) fn collect_workspace_files(
+    workspace_root: &Path,
+    dir: &Path,
+    out: &mut Vec<WorkspaceFileEntry>,
+) -> Result<(), String> {
+    if out.len() >= 5_000 {
+        return Ok(());
+    }
+
+    let entries = fs::read_dir(dir).map_err(|e| e.to_string())?;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let file_name = path.file_name().and_then(|name| name.to_str()).unwrap_or("");
+
+        if should_skip_workspace_entry(file_name) {
+            continue;
+        }
+
+        let Ok(relative) = path.strip_prefix(workspace_root) else {
+            continue;
+        };
+        let relative_path = relative.to_string_lossy().replace('\\', "/");
+        let modified_ms = fs::metadata(&path)
+            .and_then(|m| m.modified())
+            .ok()
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
+
+        if path.is_dir() {
+            out.push(WorkspaceFileEntry {
+                path: relative_path,
+                kind: "directory".to_string(),
+                modified_ms,
+            });
+            collect_workspace_files(workspace_root, &path, out)?;
+            continue;
+        }
+
+        out.push(WorkspaceFileEntry {
+            path: relative_path,
+            kind: "file".to_string(),
+            modified_ms,
+        });
+    }
+    Ok(())
 }
 
 // ── hook scripts ─────────────────────────────────────────────────────────────
@@ -235,11 +296,7 @@ fn init_agents_dir(workspace: &Path) -> anyhow::Result<WorkspaceInfo> {
         String::new()
     };
     if !existing.contains(".agents/") {
-        let sep = if existing.is_empty() || existing.ends_with('\n') {
-            ""
-        } else {
-            "\n"
-        };
+        let sep = if existing.is_empty() || existing.ends_with('\n') { "" } else { "\n" };
         fs::write(&gitignore, format!("{}{}.agents/\n", existing, sep))?;
     }
 
@@ -250,8 +307,8 @@ fn init_agents_dir(workspace: &Path) -> anyhow::Result<WorkspaceInfo> {
         path: workspace.to_string_lossy().to_string(),
         tasks_md,
         agent_state_md,
-        hook_port: 0, // filled in after bridge starts
-        mcp_port: 0,  // filled in after MCP server starts
+        hook_port: 0,
+        mcp_port: 0,
     })
 }
 
@@ -264,6 +321,14 @@ fn classify(path: &Path) -> String {
     }
     .to_string()
 }
+
+fn should_skip_workspace_entry(name: &str) -> bool {
+    matches!(
+        name,
+        ".git" | ".DS_Store" | "node_modules" | "target" | "dist" | "build" | ".vite"
+    )
+}
+
 
 // ── templates ─────────────────────────────────────────────────────────────────
 
@@ -295,175 +360,6 @@ hook_port = 0
 mcp_socket = ".agents/coordinator.sock"
 conflict_window_secs = 30
 "#;
-
-// ── Tauri commands ────────────────────────────────────────────────────────────
-
-#[tauri::command]
-pub async fn open_workspace(
-    path: String,
-    app: AppHandle,
-    store: State<'_, WorkspaceStore>,
-) -> Result<WorkspaceInfo, String> {
-    let p = std::path::Path::new(&path);
-    let (handle, info) = open(p, app).await.map_err(|e| e.to_string())?;
-    *store.0.lock().unwrap() = Some(handle);
-    Ok(info)
-}
-
-#[tauri::command]
-pub fn close_workspace(store: State<'_, WorkspaceStore>) -> Result<(), String> {
-    *store.0.lock().unwrap() = None;
-    Ok(())
-}
-
-#[tauri::command]
-pub fn read_workspace_file(path: String) -> Result<String, String> {
-    fs::read_to_string(&path).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn list_workspace_files(workspace_path: String) -> Result<Vec<WorkspaceFileEntry>, String> {
-    let workspace = PathBuf::from(workspace_path);
-    let workspace_root = workspace.canonicalize().map_err(|e| e.to_string())?;
-    let mut files = Vec::new();
-    collect_workspace_files(&workspace_root, &workspace_root, &mut files)?;
-    files.sort_by(|a, b| {
-        let kind_order = match (a.kind.as_str(), b.kind.as_str()) {
-            ("directory", "file") => std::cmp::Ordering::Less,
-            ("file", "directory") => std::cmp::Ordering::Greater,
-            _ => std::cmp::Ordering::Equal,
-        };
-        kind_order.then_with(|| a.path.cmp(&b.path))
-    });
-    Ok(files)
-}
-
-#[tauri::command]
-pub fn read_workspace_text_file(
-    workspace_path: String,
-    relative_path: String,
-) -> Result<String, String> {
-    let path = safe_workspace_path(&workspace_path, &relative_path)?;
-    fs::read_to_string(path).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn write_workspace_text_file(request: WriteWorkspaceFileRequest) -> Result<(), String> {
-    let path = safe_workspace_path(&request.workspace_path, &request.relative_path)?;
-    fs::write(path, request.content).map_err(|e| e.to_string())
-}
-
-fn safe_workspace_path(workspace_path: &str, relative_path: &str) -> Result<PathBuf, String> {
-    let workspace_root = PathBuf::from(workspace_path)
-        .canonicalize()
-        .map_err(|e| e.to_string())?;
-    let path = workspace_root.join(relative_path);
-    let parent = path
-        .parent()
-        .ok_or_else(|| "Invalid file path".to_string())?
-        .canonicalize()
-        .map_err(|e| e.to_string())?;
-    if !parent.starts_with(&workspace_root) {
-        return Err("File is outside the workspace".to_string());
-    }
-    Ok(path)
-}
-
-fn collect_workspace_files(
-    workspace_root: &Path,
-    dir: &Path,
-    out: &mut Vec<WorkspaceFileEntry>,
-) -> Result<(), String> {
-    if out.len() >= 5_000 {
-        return Ok(());
-    }
-
-    let entries = fs::read_dir(dir).map_err(|e| e.to_string())?;
-    for entry in entries.flatten() {
-        let path = entry.path();
-        let file_name = path.file_name().and_then(|name| name.to_str()).unwrap_or("");
-
-        if should_skip_workspace_entry(file_name) {
-            continue;
-        }
-
-        let Ok(relative) = path.strip_prefix(workspace_root) else {
-            continue;
-        };
-        let relative_path = relative.to_string_lossy().replace('\\', "/");
-        let modified_ms = fs::metadata(&path)
-            .and_then(|metadata| metadata.modified())
-            .ok()
-            .and_then(|modified| modified.duration_since(std::time::UNIX_EPOCH).ok())
-            .map(|duration| duration.as_millis() as u64)
-            .unwrap_or(0);
-
-        if path.is_dir() {
-            out.push(WorkspaceFileEntry {
-                path: relative_path,
-                kind: "directory".to_string(),
-                modified_ms,
-            });
-            collect_workspace_files(workspace_root, &path, out)?;
-            continue;
-        }
-
-        if !is_editable_file(&path) {
-            continue;
-        }
-
-        out.push(WorkspaceFileEntry {
-            path: relative_path,
-            kind: "file".to_string(),
-            modified_ms,
-        });
-    }
-    Ok(())
-}
-
-fn should_skip_workspace_entry(name: &str) -> bool {
-    matches!(
-        name,
-        ".git"
-            | ".DS_Store"
-            | "node_modules"
-            | "target"
-            | "dist"
-            | "build"
-            | ".vite"
-    )
-}
-
-fn is_editable_file(path: &Path) -> bool {
-    let file_name = path.file_name().and_then(|name| name.to_str()).unwrap_or("");
-    if file_name.starts_with('.') {
-        return true;
-    }
-
-    let Some(ext) = path.extension().and_then(|ext| ext.to_str()) else {
-        return false;
-    };
-    matches!(
-        ext,
-        "css"
-            | "html"
-            | "js"
-            | "json"
-            | "jsonl"
-            | "jsx"
-            | "md"
-            | "rs"
-            | "sh"
-            | "toml"
-            | "ts"
-            | "tsx"
-            | "txt"
-            | "yml"
-            | "yaml"
-    )
-}
-
-// ── templates ─────────────────────────────────────────────────────────────────
 
 const AGENTS_MD_TEMPLATE: &str = r#"# OggyBridge Coordination Protocol
 

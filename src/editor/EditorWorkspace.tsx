@@ -1,31 +1,26 @@
 import { invoke } from "@tauri-apps/api/core";
-import CodeMirror from "@uiw/react-codemirror";
-import { Extension } from "@codemirror/state";
-import { oneDark } from "@codemirror/theme-one-dark";
-import { javascript } from "@codemirror/lang-javascript";
-import { css } from "@codemirror/lang-css";
-import { html } from "@codemirror/lang-html";
-import { json } from "@codemirror/lang-json";
-import { markdown } from "@codemirror/lang-markdown";
-import { rust } from "@codemirror/lang-rust";
-import { yaml } from "@codemirror/lang-yaml";
-import { useEffect, useMemo, useState } from "react";
-import { Code, Folder, FolderOpen, X } from "../overview/Icons";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Code2, Columns, Maximize2, X, Globe } from "lucide-react";
 import { Translator } from "../i18n";
-import { WorkspaceInfo } from "../types";
+import { AgentPane, WorkspaceInfo } from "../types";
+import FileTree from "./FileTree";
+import CodeEditor, { CodeEditorHandle } from "./CodeEditor";
+import BrowserPane from "./BrowserPane";
 import "../styles/EditorWorkspace.css";
 
 interface Props {
   workspace: WorkspaceInfo | null;
   layout?: "side" | "fullscreen";
   onLayoutChange?: (layout: "side" | "fullscreen") => void;
+  panes: AgentPane[];
+  onSendToPane: (paneId: string, text: string) => void;
   t: Translator;
 }
 
-interface WorkspaceFileEntry {
-  path: string;
-  kind: "directory" | "file";
-  modifiedMs: number;
+interface SendMenu {
+  x: number;
+  y: number;
+  text: string;
 }
 
 interface FileTab {
@@ -34,67 +29,46 @@ interface FileTab {
   savedContent: string;
 }
 
-interface TreeNode {
-  name: string;
-  path: string;
-  kind: "directory" | "file";
-  children: TreeNode[];
+function basename(path: string): string {
+  return path.split("/").pop() || path;
 }
 
-const DEFAULT_EXPANDED = new Set([""]);
+const TREE_MIN = 140;
+const TREE_MAX = 500;
+const TREE_DEFAULT = 260;
 
-export default function EditorWorkspace({ workspace, layout = "side", onLayoutChange, t }: Props) {
+export default function EditorWorkspace({ workspace, layout = "side", onLayoutChange, panes, onSendToPane, t }: Props) {
   const [mode, setMode] = useState<"editor" | "browser">("editor");
-  const [entries, setEntries] = useState<WorkspaceFileEntry[]>([]);
-  const [expanded, setExpanded] = useState<Set<string>>(DEFAULT_EXPANDED);
   const [tabs, setTabs] = useState<FileTab[]>([]);
   const [activePath, setActivePath] = useState<string | null>(null);
-  const [filter, setFilter] = useState("");
-  const [status, setStatus] = useState<string | null>(null);
-  const [browserUrl, setBrowserUrl] = useState("http://localhost:5173");
-  const [committedBrowserUrl, setCommittedBrowserUrl] = useState("http://localhost:5173");
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const [treeWidth, setTreeWidth] = useState(TREE_DEFAULT);
+  const [sendMenu, setSendMenu] = useState<SendMenu | null>(null);
+  const editorRef = useRef<CodeEditorHandle>(null);
+  const activeTabRef = useRef<FileTab | null>(null);
+  const tabsRef = useRef<FileTab[]>([]);
+  const activePathRef = useRef<string | null>(null);
 
   const activeTab = tabs.find((tab) => tab.path === activePath) ?? null;
-  const tree = useMemo(() => buildTree(entries), [entries]);
-  const filteredTree = useMemo(() => {
-    const query = filter.trim().toLowerCase();
-    return query ? filterTree(tree, query) : tree;
-  }, [filter, tree]);
+  activeTabRef.current = activeTab;
+  tabsRef.current = tabs;
+  activePathRef.current = activePath;
+
+  const isDirty = activeTab ? activeTab.content !== activeTab.savedContent : false;
 
   useEffect(() => {
-    setEntries([]);
-    setExpanded(DEFAULT_EXPANDED);
     setTabs([]);
     setActivePath(null);
-    setFilter("");
     setStatus(null);
     setMode("editor");
-
-    if (!workspace || !("__TAURI_INTERNALS__" in window)) return;
-
-    setLoading(true);
-    invoke<WorkspaceFileEntry[]>("list_workspace_files", { workspacePath: workspace.path })
-      .then((nextEntries) => {
-        setEntries(nextEntries);
-        setExpanded(new Set(["", ...nextEntries.filter((entry) => entry.kind === "directory" && entry.path.split("/").length <= 2).map((entry) => entry.path)]));
-      })
-      .catch((e) => setStatus(String(e)))
-      .finally(() => setLoading(false));
-  }, [workspace]);
+  }, [workspace?.path]);
 
   const openFile = async (path: string) => {
     if (!workspace || !("__TAURI_INTERNALS__" in window)) return;
+    const existing = tabsRef.current.find((t) => t.path === path);
+    if (existing) { setActivePath(path); return; }
 
-    const existing = tabs.find((tab) => tab.path === path);
-    if (existing) {
-      setActivePath(path);
-      return;
-    }
-
-    setStatus(null);
-    setLoading(true);
     try {
       const content = await invoke<string>("read_workspace_text_file", {
         workspacePath: workspace.path,
@@ -104,351 +78,238 @@ export default function EditorWorkspace({ workspace, layout = "side", onLayoutCh
       setActivePath(path);
     } catch (e) {
       setStatus(String(e));
-    } finally {
-      setLoading(false);
     }
   };
 
-  const updateActiveContent = (content: string) => {
-    if (!activePath) return;
-    setTabs((prev) => prev.map((tab) => (
-      tab.path === activePath ? { ...tab, content } : tab
-    )));
-  };
-
-  const closeTab = (path: string) => {
-    const tab = tabs.find((item) => item.path === path);
+  const closeTab = useCallback((path: string) => {
+    const tab = tabsRef.current.find((t) => t.path === path);
     if (tab && tab.content !== tab.savedContent && !window.confirm(t("editor.confirmDiscard"))) return;
-
     setTabs((prev) => {
-      const next = prev.filter((item) => item.path !== path);
-      if (activePath === path) {
-        setActivePath(next[next.length - 1]?.path ?? null);
-      }
+      const next = prev.filter((t) => t.path !== path);
+      if (activePathRef.current === path) setActivePath(next[next.length - 1]?.path ?? null);
       return next;
     });
-  };
+  }, [t]);
 
-  const saveActiveFile = async () => {
-    if (!workspace || !activeTab || !("__TAURI_INTERNALS__" in window)) return;
-
+  const saveActiveFile = useCallback(async () => {
+    const tab = activeTabRef.current;
+    if (!workspace || !tab || !("__TAURI_INTERNALS__" in window)) return;
     setSaving(true);
     setStatus(null);
     try {
       await invoke("write_workspace_text_file", {
-        request: {
-          workspacePath: workspace.path,
-          relativePath: activeTab.path,
-          content: activeTab.content,
-        },
+        request: { workspacePath: workspace.path, relativePath: tab.path, content: tab.content },
       });
-      setTabs((prev) => prev.map((tab) => (
-        tab.path === activeTab.path ? { ...tab, savedContent: tab.content } : tab
-      )));
+      setTabs((prev) => prev.map((t) =>
+        t.path === tab.path ? { ...t, savedContent: t.content } : t
+      ));
       setStatus(t("editor.saved"));
     } catch (e) {
       setStatus(String(e));
     } finally {
       setSaving(false);
     }
+  }, [workspace, t]);
+
+  const cycleTab = useCallback((dir: 1 | -1) => {
+    const ts = tabsRef.current;
+    if (ts.length < 2) return;
+    const idx = ts.findIndex((t) => t.path === activePathRef.current);
+    const next = (idx + dir + ts.length) % ts.length;
+    setActivePath(ts[next].path);
+  }, []);
+
+  const updateTabContent = (path: string, value: string) => {
+    setTabs((prev) => prev.map((tab) =>
+      tab.path === path ? { ...tab, content: value } : tab
+    ));
   };
 
-  const toggleDir = (path: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) next.delete(path);
-      else next.add(path);
-      return next;
-    });
-  };
-
+  // Global keyboard shortcuts for frame
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
-        event.preventDefault();
+    const onKeyDown = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+
+      if (e.key.toLowerCase() === "s") {
+        e.preventDefault();
         void saveActiveFile();
+      } else if (e.key.toLowerCase() === "w") {
+        e.preventDefault();
+        if (activePathRef.current) closeTab(activePathRef.current);
+      } else if (e.key === "Tab") {
+        e.preventDefault();
+        cycleTab(e.shiftKey ? -1 : 1);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [activeTab]);
+  }, [saveActiveFile, closeTab, cycleTab]);
+
+  // Tree pane drag-resize
+  const dragRef = useRef<{ startX: number; startW: number } | null>(null);
+
+  const onDividerMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    dragRef.current = { startX: e.clientX, startW: treeWidth };
+    const onMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return;
+      const delta = ev.clientX - dragRef.current.startX;
+      setTreeWidth(Math.min(TREE_MAX, Math.max(TREE_MIN, dragRef.current.startW + delta)));
+    };
+    const onUp = () => {
+      dragRef.current = null;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
 
   if (!workspace) {
     return (
       <div className="editor-workspace-empty">
-        <Code size={28} />
+        <Code2 size={28} />
         <span>{t("editor.openWorkspace")}</span>
       </div>
     );
   }
 
-  const isDirty = activeTab ? activeTab.content !== activeTab.savedContent : false;
-
   return (
     <section className="editor-workspace">
-      <div className="editor-mode-tabs">
-        <div className="editor-content-tabs">
+      <div className="editor-topbar">
+        <div className="editor-mode-tabs">
           <button
-            className={`editor-mode-tab ${mode === "editor" ? "active" : ""}`}
+            className={`editor-mode-tab${mode === "editor" ? " active" : ""}`}
             onClick={() => setMode("editor")}
           >
-            <Code size={13} />
+            <Code2 size={13} />
             {t("sidebar.editor")}
           </button>
           <button
-            className={`editor-mode-tab ${mode === "browser" ? "active" : ""}`}
+            className={`editor-mode-tab${mode === "browser" ? " active" : ""}`}
             onClick={() => setMode("browser")}
           >
+            <Globe size={13} />
             {t("editor.browser")}
           </button>
         </div>
         <div className="editor-layout-tabs">
           <button
-            className={`editor-layout-tab ${layout === "side" ? "active" : ""}`}
+            className={`editor-layout-tab${layout === "side" ? " active" : ""}`}
             onClick={() => onLayoutChange?.("side")}
             title={t("editor.layout.side")}
           >
-            {t("editor.layout.side")}
+            <Columns size={14} />
           </button>
           <button
-            className={`editor-layout-tab ${layout === "fullscreen" ? "active" : ""}`}
+            className={`editor-layout-tab${layout === "fullscreen" ? " active" : ""}`}
             onClick={() => onLayoutChange?.("fullscreen")}
             title={t("editor.layout.fullscreen")}
           >
-            {t("editor.layout.fullscreen")}
+            <Maximize2 size={14} />
           </button>
         </div>
       </div>
 
       <div className="editor-shell">
-        <aside className="editor-tree-pane">
+        <aside className="editor-tree-pane" style={{ width: treeWidth, minWidth: treeWidth, maxWidth: treeWidth }}>
           <div className="editor-tree-header">
-            <span className="editor-workspace-name">{workspace.path.replace(/\\/g, "/").split("/").pop() || workspace.path}</span>
-            {loading && <span className="editor-status">{t("editor.loading")}</span>}
+            <span className="editor-workspace-name">
+              {workspace.path.replace(/\\/g, "/").split("/").pop() || workspace.path}
+            </span>
           </div>
-          <div className="editor-search-row">
-            <input
-              className="editor-search-input"
-              value={filter}
-              onChange={(event) => setFilter(event.target.value)}
-              placeholder={t("editor.search")}
-            />
-          </div>
-          <div className="editor-tree">
-            {filteredTree.children.map((node) => (
-              <TreeRow
-                key={node.path}
-                node={node}
-                depth={0}
-                expanded={filter ? new Set(entries.filter((entry) => entry.kind === "directory").map((entry) => entry.path)) : expanded}
-                activePath={activePath}
-                onToggleDir={toggleDir}
-                onOpenFile={openFile}
-              />
-            ))}
-            {!loading && filteredTree.children.length === 0 && (
-              <p className="editor-tree-empty">{t("editor.noFiles")}</p>
-            )}
-          </div>
+          <FileTree workspacePath={workspace.path} onOpenFile={openFile} />
         </aside>
 
-        {mode === "editor" ? (
-          <main className="editor-code-pane">
-            <div className="editor-tabbar">
-              {tabs.map((tab) => {
-                const dirty = tab.content !== tab.savedContent;
-                return (
-                  <button
-                    key={tab.path}
-                    className={`editor-code-tab ${activePath === tab.path ? "active" : ""}`}
-                    onClick={() => setActivePath(tab.path)}
-                    title={tab.path}
-                  >
-                    <span>{basename(tab.path)}</span>
-                    {dirty && <span className="editor-dirty-dot" />}
-                    <span
-                      className="editor-tab-close"
-                      onClick={(event) => { event.stopPropagation(); closeTab(tab.path); }}
-                    >
-                      <X size={12} />
-                    </span>
-                  </button>
-                );
-              })}
-              <div className="editor-tabbar-spacer" />
-              <button
-                className="editor-save-action"
-                onClick={saveActiveFile}
-                disabled={!activeTab || !isDirty || saving}
-              >
-                {saving ? t("editor.saving") : t("editor.save")}
-              </button>
-            </div>
+        <div className="editor-tree-divider" onMouseDown={onDividerMouseDown} />
 
+        <main className={`editor-code-pane${mode !== "editor" ? " editor-pane-hidden" : ""}`}>
+          <div className="editor-tabbar">
+            {tabs.map((tab) => {
+              const dirty = tab.content !== tab.savedContent;
+              return (
+                <button
+                  key={tab.path}
+                  className={`editor-code-tab${activePath === tab.path ? " active" : ""}`}
+                  onClick={() => setActivePath(tab.path)}
+                  onAuxClick={(e) => { if (e.button === 1) closeTab(tab.path); }}
+                  title={tab.path}
+                >
+                  <span>{basename(tab.path)}</span>
+                  {dirty && <span className="editor-dirty-dot" />}
+                  <span
+                    className="editor-tab-close"
+                    onClick={(e) => { e.stopPropagation(); closeTab(tab.path); }}
+                  >
+                    <X size={12} />
+                  </span>
+                </button>
+              );
+            })}
+            <div className="editor-tabbar-spacer" />
+            <button
+              className="editor-save-action"
+              onClick={saveActiveFile}
+              disabled={!activeTab || !isDirty || saving}
+            >
+              {saving ? t("editor.saving") : t("editor.save")}
+            </button>
+          </div>
+
+          <div className="editor-code-area">
             {activeTab ? (
-              <CodeMirror
-                className="editor-codemirror"
-                value={activeTab.content}
-                height="100%"
-                theme={oneDark}
-                extensions={languageExtensions(activeTab.path)}
-                basicSetup={{
-                  foldGutter: true,
-                  highlightActiveLine: true,
-                  highlightActiveLineGutter: true,
-                }}
-                onChange={updateActiveContent}
+              <CodeEditor
+                ref={editorRef}
+                tab={activeTab}
+                onChange={updateTabContent}
+                onContextMenuSend={(x, y, text) => setSendMenu({ x, y, text })}
               />
             ) : (
               <div className="editor-empty-state">{t("editor.selectFile")}</div>
             )}
+          </div>
 
-            <div className="editor-footer">
-              <span>{activePath ?? t("editor.noFileSelected")}</span>
-              <span className={isDirty ? "dirty" : ""}>{isDirty ? t("editor.unsaved") : status}</span>
-            </div>
-          </main>
-        ) : (
-          <main className="editor-browser-pane">
-            <form
-              className="editor-browser-bar"
-              onSubmit={(event) => {
-                event.preventDefault();
-                setCommittedBrowserUrl(normalizeBrowserUrl(browserUrl));
-              }}
-            >
-              <input
-                className="editor-browser-input"
-                value={browserUrl}
-                onChange={(event) => setBrowserUrl(event.target.value)}
-                placeholder="http://localhost:5173"
-              />
-              <button className="editor-browser-go" type="submit">
-                {t("editor.open")}
-              </button>
-            </form>
-            <iframe
-              className="editor-browser-frame"
-              src={committedBrowserUrl}
-              title={t("editor.browser")}
-            />
-          </main>
-        )}
+          <div className="editor-footer">
+            <span>{activePath ?? t("editor.noFileSelected")}</span>
+            <span className={isDirty ? "dirty" : ""}>{isDirty ? t("editor.unsaved") : status}</span>
+          </div>
+        </main>
+
+        <main className={`editor-browser-pane${mode !== "browser" ? " editor-pane-hidden" : ""}`}>
+          <BrowserPane />
+        </main>
       </div>
+
+      {sendMenu && (
+        <div
+          className="send-to-agent-overlay"
+          onClick={() => setSendMenu(null)}
+        >
+          <div
+            className="send-to-agent-menu"
+            style={{ top: sendMenu.y, left: sendMenu.x }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="send-menu-header">Send to agent</div>
+            {panes.length === 0 && (
+              <div className="send-menu-empty">No agent panes open</div>
+            )}
+            {panes.map((pane) => (
+              <button
+                key={pane.id}
+                className="send-menu-item"
+                onClick={() => {
+                  onSendToPane(pane.id, sendMenu.text);
+                  setSendMenu(null);
+                }}
+              >
+                {pane.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
-}
-
-function TreeRow({
-  node,
-  depth,
-  expanded,
-  activePath,
-  onToggleDir,
-  onOpenFile,
-}: {
-  node: TreeNode;
-  depth: number;
-  expanded: Set<string>;
-  activePath: string | null;
-  onToggleDir: (path: string) => void;
-  onOpenFile: (path: string) => void;
-}) {
-  const isDir = node.kind === "directory";
-  const isOpen = expanded.has(node.path);
-
-  return (
-    <>
-      <button
-        className={`editor-tree-row ${activePath === node.path ? "active" : ""}`}
-        style={{ paddingLeft: 10 + depth * 14 }}
-        onClick={() => isDir ? onToggleDir(node.path) : onOpenFile(node.path)}
-        title={node.path}
-      >
-        <span className="editor-tree-caret">{isDir ? (isOpen ? "⌄" : "›") : ""}</span>
-        {isDir ? (isOpen ? <FolderOpen size={14} /> : <Folder size={14} />) : <Code size={13} />}
-        <span className="editor-tree-name">{node.name}</span>
-      </button>
-      {isDir && isOpen && node.children.map((child) => (
-        <TreeRow
-          key={child.path}
-          node={child}
-          depth={depth + 1}
-          expanded={expanded}
-          activePath={activePath}
-          onToggleDir={onToggleDir}
-          onOpenFile={onOpenFile}
-        />
-      ))}
-    </>
-  );
-}
-
-function buildTree(entries: WorkspaceFileEntry[]): TreeNode {
-  const root: TreeNode = { name: "", path: "", kind: "directory", children: [] };
-  const nodes = new Map<string, TreeNode>([["", root]]);
-
-  for (const entry of entries) {
-    const parts = entry.path.split("/").filter(Boolean);
-    let parent = root;
-    let currentPath = "";
-
-    parts.forEach((part, index) => {
-      currentPath = currentPath ? `${currentPath}/${part}` : part;
-      const isLeaf = index === parts.length - 1;
-      const kind = isLeaf ? entry.kind : "directory";
-      let node = nodes.get(currentPath);
-
-      if (!node) {
-        node = { name: part, path: currentPath, kind, children: [] };
-        nodes.set(currentPath, node);
-        parent.children.push(node);
-      } else if (isLeaf) {
-        node.kind = kind;
-      }
-
-      parent = node;
-    });
-  }
-
-  sortTree(root);
-  return root;
-}
-
-function sortTree(node: TreeNode) {
-  node.children.sort((a, b) => {
-    if (a.kind !== b.kind) return a.kind === "directory" ? -1 : 1;
-    return a.name.localeCompare(b.name);
-  });
-  node.children.forEach(sortTree);
-}
-
-function filterTree(node: TreeNode, query: string): TreeNode {
-  const children = node.children
-    .map((child) => filterTree(child, query))
-    .filter((child) => child.path.toLowerCase().includes(query) || child.children.length > 0);
-  return { ...node, children };
-}
-
-function basename(path: string): string {
-  return path.split("/").pop() || path;
-}
-
-function normalizeBrowserUrl(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) return "about:blank";
-  if (/^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(trimmed) || trimmed.startsWith("about:")) return trimmed;
-  return `http://${trimmed}`;
-}
-
-function languageExtensions(path: string): Extension[] {
-  const ext = path.split(".").pop()?.toLowerCase();
-  if (["js", "jsx", "ts", "tsx"].includes(ext ?? "")) return [javascript({ jsx: true, typescript: ext === "ts" || ext === "tsx" })];
-  if (ext === "css") return [css()];
-  if (["html", "xml"].includes(ext ?? "")) return [html()];
-  if (ext === "json" || path.endsWith(".jsonl")) return [json()];
-  if (ext === "md") return [markdown()];
-  if (ext === "rs") return [rust()];
-  if (["yaml", "yml"].includes(ext ?? "")) return [yaml()];
-  return [];
 }

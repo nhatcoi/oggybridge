@@ -85,17 +85,20 @@ html, body, #root {
 }
 
 .main-panes-area {
-  flex: 1;
-  min-width: 280px;
-  min-height: 0;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
 }
 
+.editor-side-wrapper {
+  width: 100%;
+  height: 100%;
+  padding: 8px 8px 8px 0;
+}
+
 .editor-special-pane {
-  min-width: 420px;
-  flex-shrink: 0;
-  min-height: 0;
-  margin: 8px 8px 8px 0;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   border: 1px solid var(--border-color);
   border-radius: 8px;

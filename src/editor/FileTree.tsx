@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   File,
   Folder,
-  FolderOpen,
   FilePlus,
   FolderPlus,
   RefreshCw,
@@ -12,6 +11,7 @@ import {
   ChevronRight,
   ChevronDown,
 } from "lucide-react";
+import FileIcon from "./FileIcon";
 
 export interface WorkspaceFileEntry {
   path: string;
@@ -185,7 +185,7 @@ export default function FileTree({ workspacePath, onOpenFile }: Props) {
     if (inlineInput.parentPath !== parentPath) return null;
     return (
       <div className="ft-inline-input-row">
-        {inlineInput.kind === "directory" ? <Folder size={13} /> : <File size={13} />}
+        {inlineInput.kind === "directory" ? <Folder size={13} /> : <File size={13} style={{ color: "#9E9E9E" }} />}
         <input
           ref={inputRef}
           className="ft-inline-input"
@@ -230,12 +230,23 @@ export default function FileTree({ workspacePath, onOpenFile }: Props) {
     if (!filterMatch(node)) return null;
     const isDir = node.kind === "directory";
     const isRenaming = inlineInput?.renamePath === node.path;
+    const dragText = node.path;
 
     return (
       <div key={node.path} className="ft-node">
         <div
           className="ft-row"
           style={{ paddingLeft: depth * 14 + 6 }}
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.effectAllowed = "copy";
+            e.dataTransfer.setData("text/plain", dragText);
+            e.dataTransfer.setData("application/x-oggybridge-path", node.path);
+            (e.currentTarget.closest(".ft-node") as HTMLElement | null)?.setAttribute("dragging", "");
+          }}
+          onDragEnd={(e) => {
+            (e.currentTarget.closest(".ft-node") as HTMLElement | null)?.removeAttribute("dragging");
+          }}
           onClick={() => isDir ? toggle(node.path) : onOpenFile(node.path)}
           onContextMenu={(e) => {
             e.preventDefault();
@@ -245,9 +256,7 @@ export default function FileTree({ workspacePath, onOpenFile }: Props) {
           <span className="ft-caret">
             {isDir ? (node.expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />) : null}
           </span>
-          {isDir
-            ? (node.expanded ? <FolderOpen size={13} /> : <Folder size={13} />)
-            : <File size={13} />}
+          <FileIcon name={node.name} isDir={isDir} isOpen={node.expanded} />
           {isRenaming ? renderRenameInput(node) : (
             <span className="ft-name">{node.name}</span>
           )}

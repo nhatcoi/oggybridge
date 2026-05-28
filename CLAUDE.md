@@ -21,6 +21,7 @@ Full plan lives in [`PLAN.md`](./PLAN.md). Always check the **Milestone Status**
 | Shell | Tauri 2.x (Rust + native webview) |
 | Backend | Rust workspace; crates under `crates/` and `src-tauri/` |
 | Frontend | React 18 + TypeScript + Vite |
+| Layout | `react-resizable-panels` v4 — all panel sizes must be **strings** (`"50%"`, `"20%"`); numeric values are pixels, not percentages |
 | Terminal | xterm.js + `@xterm/addon-fit` + `@xterm/addon-webgl` |
 | PTY | `portable-pty` crate (from Wezterm) |
 | File watch | `notify` + `notify-debouncer-mini` (250ms debounce) |
@@ -33,48 +34,66 @@ Full plan lives in [`PLAN.md`](./PLAN.md). Always check the **Milestone Status**
 
 ```
 oggybridge/
-├── PLAN.md                  # canonical plan; milestone status table at top
-├── CLAUDE.md                # this file
-├── Cargo.toml               # Rust workspace root (members: src-tauri, crates/pty, crates/hook_bridge)
-├── package.json             # frontend deps + scripts
+├── PLAN.md
+├── CLAUDE.md                    # this file
+├── Cargo.toml                   # Rust workspace root
+├── package.json
 ├── vite.config.ts
 ├── tsconfig.json
 ├── index.html
-├── src/                     # React frontend
-│   ├── main.tsx             # No StrictMode — see conventions
-│   ├── App.tsx              # root state: panes, workspace, hookEvents, maxPerRow
-│   ├── App.css
+├── src/
+│   ├── main.tsx                 # No StrictMode — see conventions
+│   ├── App.tsx                  # root state: panes, workspace, editorOpen, layout
+│   ├── agents.tsx
+│   ├── i18n.ts
+│   ├── types.ts
+│   ├── utils.ts
+│   ├── sessionStorage.ts
 │   ├── panes/
-│   │   ├── PaneGrid.tsx     # tile layout; drag-resize dividers; row chunking
-│   │   ├── PaneGrid.css
-│   │   └── TerminalPane.tsx # xterm.js ↔ Tauri pty IPC; cwd support
+│   │   ├── PaneGrid.tsx         # react-resizable-panels grid; vertical+horizontal resize; drag-drop overlay
+│   │   TerminalPane.tsx         # xterm.js ↔ Tauri PTY IPC; ResizeObserver refit
+│   │   └── AgentLauncher.tsx
+│   ├── editor/
+│   │   ├── EditorWorkspace.tsx  # Editor/Browser tab host
+│   │   ├── FileTree.tsx         # file explorer; draggable rows → drop onto panes
+│   │   ├── FileIcon.tsx         # Material-style file/folder icon+color mapping
+│   │   ├── CodeEditor.tsx       # Monaco-based code editor
+│   │   └── BrowserPane.tsx
 │   ├── overview/
-│   │   ├── Sidebar.tsx      # agent launcher, pane list, tasks, activity feed
-│   │   ├── Sidebar.css
-│   │   └── TasksView.tsx    # parses TASKS.md checkboxes
-│   └── workspace/
-│       └── WorkspaceBar.tsx # open/close workspace dialog + WorkspaceInfo display
-├── src-tauri/               # Tauri app crate
+│   │   ├── Sidebar.tsx          # activity bar + sidebar panel (explorer/tasks/agents/activity)
+│   │   ├── TasksView.tsx
+│   │   ├── SettingsView.tsx
+│   │   ├── CommandPalette.tsx
+│   │   └── Icons.tsx
+│   ├── workspace/
+│   │   └── WorkspaceBar.tsx
+│   ├── hooks/
+│   │   ├── useSettings.ts
+│   │   ├── useWorkspace.ts
+│   │   ├── useUpdater.ts
+│   │   └── useZoom.ts
+│   └── styles/                  # all CSS lives here (imported by components)
+│       ├── App.css
+│       ├── PaneGrid.css
+│       ├── Sidebar.css
+│       ├── EditorWorkspace.css
+│       └── …
+├── src-tauri/
 │   ├── Cargo.toml
 │   ├── build.rs
-│   ├── tauri.conf.json
-│   ├── capabilities/
-│   │   └── default.json
-│   ├── icons/               # icon-32/128/256/512.png + icon.png (must be RGBA PNG)
+│   ├── tauri.conf.json          # dragDropEnabled: false — required for HTML5 drag-drop to work
+│   ├── capabilities/default.json
+│   ├── icons/
 │   └── src/
 │       ├── main.rs
-│       ├── lib.rs           # all Tauri commands + app bootstrap
-│       └── workspace.rs     # workspace open/init, file watcher, hook script writer
+│       ├── lib.rs               # Tauri commands + app bootstrap
+│       └── workspace.rs         # workspace open/init, file watcher, hook script writer
 └── crates/
-    ├── pty/                 # PtySession wrapper around portable-pty
-    │   ├── Cargo.toml
-    │   └── src/lib.rs
-    └── hook_bridge/         # axum HTTP server; receives + normalises agent hook events
-        ├── Cargo.toml
-        └── src/lib.rs
+    ├── pty/
+    └── hook_bridge/
 ```
 
-Planned (not yet present): `crates/mcp_server`, `crates/agents`. Do not pre-create stubs — wait until the milestone.
+Planned (not yet present): `crates/mcp_server`, `crates/agents`. Do not pre-create stubs.
 
 ---
 
@@ -105,6 +124,36 @@ sudo apt-get install -y \
 
 ---
 
+## Layout architecture
+
+The three-panel layout (sidebar | panes | editor) uses `react-resizable-panels` v4:
+
+```
+App
+├── <Sidebar>                     activity bar (icons) + collapsible panel
+└── .main-area
+    ├── <WorkspaceBar>
+    └── .main-workbench
+        ├── <PanelGroup horizontal>   panes ↔ editor split
+        │   ├── <Panel panelRef=panesPanelRef>
+        │   │   └── <PaneGrid>        vertical PanelGroup of rows
+        │   │       └── each row: horizontal PanelGroup of panels
+        │   ├── <PanelResizeHandle>   (only when editorOpen && side)
+        │   └── <Panel>               editor side panel
+        │       └── <EditorWorkspace>
+        └── editor-fullscreen-pane   (position:absolute overlay, when fullscreen)
+```
+
+**Key states in App.tsx:**
+- `activeSidebarView: "explorer" | "tasks" | "agents" | "activity" | null` — controls left sidebar content
+- `editorOpen: boolean` — controls right editor panel (independent of sidebar)
+- `editorLayout: "side" | "fullscreen"` — side = in PanelGroup, fullscreen = absolute overlay
+- `showEditorSide = editorOpen && editorLayout === "side"` — drives conditional Panel render
+
+When editor opens, `panesPanelRef.current.resize("50%")` is called imperatively because react-resizable-panels v4 does not redistribute existing panels when a new one mounts.
+
+---
+
 ## IPC contract (current)
 
 ### Tauri commands → `src-tauri/src/lib.rs`
@@ -112,12 +161,18 @@ sudo apt-get install -y \
 | Command | Args | Returns | Notes |
 |---------|------|---------|-------|
 | `create_pty` | `id, cols, rows, cmd?: string, cwd?: string` | `Result<(), String>` | `cmd` null → `$SHELL`. `cwd` null → inherited. |
-| `write_pty` | `id, data: string` | `Result<(), String>` | User keystrokes. |
+| `write_pty` | `id, data: string` | `Result<(), String>` | User keystrokes + drag-drop path inserts. |
 | `resize_pty` | `id, cols, rows` | `Result<(), String>` | From `ResizeObserver`. |
 | `kill_pty` | `id` | `Result<(), String>` | Drops session → kills child. |
 | `open_workspace` | `path: string` | `Result<WorkspaceInfo, String>` | **async**. Inits `.agents/`, starts hook bridge, writes hook scripts. |
 | `close_workspace` | — | `Result<(), String>` | Drops `WorkspaceHandle` → aborts bridge + watcher. |
 | `read_workspace_file` | `path: string` | `Result<string, String>` | Raw file read, no watcher. |
+| `list_workspace_files` | `workspacePath: string` | `Result<WorkspaceFileEntry[], String>` | Used by FileTree. |
+| `write_workspace_text_file` | `{ workspacePath, relativePath, content }` | `Result<(), String>` | |
+| `create_workspace_dir` | `workspacePath, relativePath` | `Result<(), String>` | |
+| `rename_workspace_item` | `workspacePath, fromPath, toName` | `Result<(), String>` | |
+| `delete_workspace_item` | `workspacePath, relativePath` | `Result<(), String>` | |
+| `detect_agent_session` | `agentId, workspacePath, sinceMs` | `Result<string \| null, String>` | Session ID detection for resume. |
 
 ### Tauri events (Rust → frontend)
 
@@ -127,7 +182,7 @@ sudo apt-get install -y \
 | `workspace-file-changed` | `{ kind, content, path }` | notify debouncer; kind = `"tasks" \| "agent_state" \| "activity" \| "other"` |
 | `hook-event` | `HookEvent` (see below) | Hook bridge on each POST |
 
-### `HookEvent` shape (TypeScript + Rust)
+### `HookEvent` shape
 
 ```typescript
 interface HookEvent {
@@ -146,9 +201,18 @@ interface WorkspaceInfo {
   path: string;
   tasksMd: string;
   agentStateMd: string;
-  hookPort: number;     // port the hook bridge is listening on
+  hookPort: number;
 }
 ```
+
+---
+
+## Drag-and-drop (file tree → panes)
+
+- `FileTree.tsx` sets `dataTransfer.setData("text/plain", node.path)` — **workspace-relative** path (e.g. `README.md`, `src/main.tsx`).
+- `PaneGrid.tsx` wraps the xterm canvas in a `.pane-drop-overlay` div (position: absolute, inset: 0). The overlay is `pointer-events: none` normally, and flips to `pointer-events: auto` when `isDragging` is true (tracked via window `dragstart`/`dragend`). This is necessary because xterm's WebGL canvas swallows all pointer events.
+- Drop handler writes `'${path}' ` (single-quoted, trailing space) to the PTY via `write_pty`.
+- **`dragDropEnabled: false`** in `tauri.conf.json` is mandatory — Tauri's native OS drag handler intercepts and suppresses HTML5 drop events by default.
 
 ---
 
@@ -171,7 +235,7 @@ interface WorkspaceInfo {
 
 ```
 <workspace>/
-├── AGENTS.md                    # coordination protocol doc for agents
+├── AGENTS.md
 ├── .claude/
 │   └── settings.json            # Claude Code hook config (workspace-local only)
 └── .agents/
@@ -180,7 +244,7 @@ interface WorkspaceInfo {
     ├── ACTIVITY.log
     ├── config.toml
     └── hooks/
-        ├── pre_tool_use.sh      # posts to hook bridge
+        ├── pre_tool_use.sh
         └── post_tool_use.sh
 ```
 
@@ -191,7 +255,7 @@ interface WorkspaceInfo {
 ## Conventions
 
 - **No `unwrap()` in IPC handlers.** Return `Result<_, String>`.
-- **No unused imports.** `cargo check --workspace` must produce zero errors, zero unused-import warnings.
+- **No unused imports.** `cargo check --workspace` must produce zero errors.
 - **No React `StrictMode`.** Double-invokes effects → two PTYs per pane. Removed in `src/main.tsx`; do not re-add.
 - **PTY reader uses `std::thread::spawn`, not `tokio::spawn`.** `Read` blocks; mixing with tokio runtime deadlocks.
 - **Icons are RGBA PNG.** Tauri rejects RGB. Regenerate with Python: color type 6, 4 bytes per pixel.
@@ -200,6 +264,9 @@ interface WorkspaceInfo {
 - **Guard `invoke` / `listen` calls** with `if (!("__TAURI_INTERNALS__" in window))`.
 - **Hook bridge uses axum 0.7.** Do not upgrade to 0.8 without verifying API compat.
 - **`open_workspace` is `async fn`** (needs to await bridge start). `close_workspace` is sync.
+- **react-resizable-panels v4: all sizes must be strings.** `defaultSize="50%"`, `minSize="20%"`, `resize("50%")`. Numeric values = pixels, not percentages.
+- **`dragDropEnabled: false` in tauri.conf.json.** Never set it back to true — it kills HTML5 drag-drop.
+- **SidebarView does not include `"editor"`.** Editor panel is controlled by separate `editorOpen: boolean` state in App.tsx, independent of sidebar view.
 
 ---
 
@@ -211,6 +278,8 @@ interface WorkspaceInfo {
 - Don't roll a custom MCP protocol. Use `rmcp` crate when M4b starts.
 - Don't use `electron`, `node-pty`, or any Node-side spawning.
 - Don't make hook scripts exit non-zero on `PreToolUse` unless intentionally blocking the tool.
+- Don't set `dragDropEnabled: true` in tauri.conf.json.
+- Don't use numeric values for react-resizable-panels sizes (they mean pixels, not percent).
 
 ---
 

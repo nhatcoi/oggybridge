@@ -28,10 +28,12 @@ interface Props {
   onToggleCommandPalette: () => void;
   activeView: SidebarView | null;
   onActiveViewChange: (view: SidebarView | null) => void;
+  editorOpen: boolean;
+  onEditorToggle: () => void;
   t: Translator;
 }
 
-export type SidebarView = "explorer" | "tasks" | "editor" | "agents" | "activity";
+export type SidebarView = "explorer" | "tasks" | "agents" | "activity";
 
 export default function Sidebar({
   agents,
@@ -45,9 +47,11 @@ export default function Sidebar({
   onToggleCommandPalette,
   activeView,
   onActiveViewChange,
+  editorOpen,
+  onEditorToggle,
   t,
 }: Props) {
-  const hasSidebarPanel = activeView !== null && activeView !== "editor";
+  const hasSidebarPanel = activeView !== null;
   const [isLogoOpen, setIsLogoOpen] = useState(false);
 
   const hasConflict = hookEvents.length >= 2 && (() => {
@@ -93,8 +97,8 @@ export default function Sidebar({
           </button>
 
           <button
-            className={`activity-tab-btn ${activeView === "editor" ? "active" : ""}`}
-            onClick={() => handleTabClick("editor")}
+            className={`activity-tab-btn ${editorOpen ? "active" : ""}`}
+            onClick={onEditorToggle}
             title={t("sidebar.editorTitle")}
           >
             <Code size={20} />

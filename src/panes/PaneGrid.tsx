@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
 import { Columns, Folder, X } from "lucide-react";
@@ -59,13 +59,15 @@ function buildArgs(
 export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPane, onPaneSessionId, agentConfigs, customAgents, t }: Props) {
   const [focused, setFocused] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleDrop = (paneId: string, e: React.DragEvent) => {
     e.preventDefault();
     setDropTarget(null);
     const text = e.dataTransfer.getData("text/plain");
     if (text && ("__TAURI_INTERNALS__" in window)) {
-      invoke("write_pty", { id: paneId, data: text }).catch(() => {});
+      // Trailing space so the user can keep typing after the inserted path.
+      invoke("write_pty", { id: paneId, data: `'${text}' ` }).catch(() => {});
     }
   };
 
@@ -74,6 +76,17 @@ export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPa
       setFocused(panes[panes.length - 1].id);
     }
   }, [panes]);
+
+  useEffect(() => {
+    const onStart = () => setIsDragging(true);
+    const onEnd = () => { setIsDragging(false); setDropTarget(null); };
+    window.addEventListener("dragstart", onStart);
+    window.addEventListener("dragend", onEnd);
+    return () => {
+      window.removeEventListener("dragstart", onStart);
+      window.removeEventListener("dragend", onEnd);
+    };
+  }, []);
 
   if (panes.length === 0) {
     return (
@@ -87,23 +100,26 @@ export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPa
 
   return (
     <div className="pane-grid-outer">
-      {rows.map((row, rowIdx) => (
-        <PanelGroup key={rowIdx} orientation="horizontal" className="pane-row">
-          {row.map((pane, colIdx) => {
+      <PanelGroup orientation="vertical">
+        {rows.map((row, rowIdx) => (
+          <Fragment key={rowIdx}>
+            {rowIdx > 0 && <PanelResizeHandle className="pane-row-divider" />}
+            <Panel defaultSize={`${100 / rows.length}%`} minSize="15%">
+              <PanelGroup orientation="horizontal">
+                {row.map((pane, colIdx) => {
             const agent = AGENTS.find((a) => a.id === pane.agentId)
               ?? customAgents.find((a) => a.id === pane.agentId);
             const isFocused = focused === pane.id;
             const agentClass = getAgentClass(pane.agentId);
 
             return (
-              <>
+              <Fragment key={pane.id}>
                 {colIdx > 0 && (
                   <PanelResizeHandle className="pane-divider" />
                 )}
                 <Panel
-                  key={pane.id}
-                  minSize={10}
-                  defaultSize={100 / row.length}
+                  minSize="10%"
+                  defaultSize={`${100 / row.length}%`}
                 >
                   <div
                     className={`pane-wrapper ${agentClass}${isFocused ? " focused" : ""}`}
@@ -141,12 +157,7 @@ export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPa
                         </button>
                       </div>
                     </div>
-                    <div
-                      className={`pane-terminal${dropTarget === pane.id ? " drop-target" : ""}`}
-                      onDragOver={(e) => { e.preventDefault(); setDropTarget(pane.id); }}
-                      onDragLeave={() => setDropTarget(null)}
-                      onDrop={(e) => handleDrop(pane.id, e)}
-                    >
+                    <div className="pane-terminal">
                       <TerminalPane
                         id={pane.id}
                         agentId={pane.agentId}
@@ -155,14 +166,23 @@ export default function PaneGrid({ panes, maxPerRow, workspace, onClose, onAddPa
                         cwd={workspace?.path}
                         onSessionId={(sessionId) => onPaneSessionId(pane.id, sessionId)}
                       />
+                      <div
+                        className={`pane-drop-overlay${isDragging ? " drag-active" : ""}${dropTarget === pane.id ? " drop-target" : ""}`}
+                        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setDropTarget(pane.id); }}
+                        onDragLeave={() => setDropTarget(null)}
+                        onDrop={(e) => handleDrop(pane.id, e)}
+                      />
                     </div>
                   </div>
                 </Panel>
-              </>
+              </Fragment>
             );
           })}
-        </PanelGroup>
-      ))}
+              </PanelGroup>
+            </Panel>
+          </Fragment>
+        ))}
+      </PanelGroup>
     </div>
   );
 }

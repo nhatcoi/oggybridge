@@ -1,11 +1,8 @@
 .pane-grid-outer {
-  display: flex;
-  flex-direction: column;
   width: 100%;
   height: 100%;
   overflow: hidden;
   padding: 8px;
-  gap: 8px;
   background: var(--bg-primary);
 }
 
@@ -20,6 +17,7 @@
 .pane-wrapper {
   display: flex;
   flex-direction: column;
+  height: 100%;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -133,6 +131,52 @@
   flex: 1;
   overflow: hidden;
   min-height: 0;
+  position: relative;
+}
+
+.pane-drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  border-radius: 0 0 8px 8px;
+  transition: background 0.1s ease;
+}
+
+.pane-drop-overlay.drag-active {
+  pointer-events: auto;
+}
+
+.pane-drop-overlay.drop-target {
+  background: rgba(88, 166, 255, 0.08);
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}
+
+.pane-row-divider {
+  height: 6px;
+  flex-shrink: 0;
+  cursor: row-resize;
+  background: transparent;
+  align-self: stretch;
+  position: relative;
+  z-index: 10;
+}
+
+.pane-row-divider::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 2px;
+  height: 2px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.pane-row-divider:hover::after,
+.pane-row-divider:active::after {
+  background: var(--border-focus);
 }
 
 .pane-divider {
@@ -169,8 +213,3 @@
   overflow: hidden;
 }
 
-.pane-terminal.drop-target {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: -2px;
-  background: rgba(88, 166, 255, 0.06);
-}

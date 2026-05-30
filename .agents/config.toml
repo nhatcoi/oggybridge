@@ -1,0 +1,7 @@
+[agents]
+enabled = ["claude-code", "codex", "copilot", "antigravity"]
+
+[coordinator]
+hook_port = 0
+mcp_socket = ".agents/coordinator.sock"
+conflict_window_secs = 30

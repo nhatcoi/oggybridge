@@ -42,6 +42,7 @@ pub fn run() {
             system::open_settings_file,
             system::open_session_file,
             system::open_config_dir,
+            system::open_in_vscode,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -32,4 +32,3 @@ npm-debug.log*
 .claude/settings.local.json
 
 .mcp.json
-.agents/

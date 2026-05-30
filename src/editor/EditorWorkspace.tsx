@@ -195,6 +195,16 @@ export default function EditorWorkspace({ workspace, layout = "side", onLayoutCh
           </button>
         </div>
         <div className="editor-layout-tabs">
+          {/* add button open in VS Code */}
+
+          <button
+            className="editor-layout-tab"
+            onClick={() => invoke("open_in_vscode", { workspacePath: workspace.path })}
+            title="Open in VS Code"
+          >
+            <Code2 size={14} />
+          </button>
+
           <button
             className={`editor-layout-tab${layout === "side" ? " active" : ""}`}
             onClick={() => onLayoutChange?.("side")}
@@ -209,6 +219,7 @@ export default function EditorWorkspace({ workspace, layout = "side", onLayoutCh
           >
             <Maximize2 size={14} />
           </button>
+
         </div>
       </div>
 

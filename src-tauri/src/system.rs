@@ -35,3 +35,16 @@ pub fn open_config_dir(app: AppHandle) -> Result<(), String> {
     let (config_dir, _, _) = app_config_paths(&app)?;
     open_os_path(&config_dir)
 }
+
+#[tauri::command]
+pub fn open_in_vscode(workspace_path: String) -> Result<(), String> {
+    let path = Path::new(&workspace_path);
+    let mut command = std::process::Command::new("code");
+    command.arg(path);
+    if let Err(_) = command.spawn() {
+        let mut flatpak_command = std::process::Command::new("flatpak");
+        flatpak_command.args(["run", "com.visualstudio.code"]).arg(path);
+        flatpak_command.spawn().map_err(|e| format!("Failed to open VS Code: {}", e))?;
+    }
+    Ok(())
+}

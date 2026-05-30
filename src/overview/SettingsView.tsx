@@ -147,25 +147,31 @@ export default function SettingsView({ isOpen, onClose, settings, onSaveSettings
     saveBinding(action, DEFAULT_KEYBINDINGS[action]);
   };
 
-  // Capture keydown when recording
+  // Capture keydown when recording; Escape closes dialog when not recording
   useEffect(() => {
-    if (!recordingAction) return;
+    if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.key === "Escape") { setRecordingAction(null); return; }
-      if (["Meta", "Control", "Shift", "Alt"].includes(e.key)) return;
-      saveBinding(recordingAction, {
-        key:   e.key,
-        mod:   e.metaKey || e.ctrlKey,
-        shift: e.shiftKey || undefined,
-        alt:   e.altKey || undefined,
-      });
-      setRecordingAction(null);
+      if (recordingAction) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.key === "Escape") { setRecordingAction(null); return; }
+        if (["Meta", "Control", "Shift", "Alt"].includes(e.key)) return;
+        saveBinding(recordingAction, {
+          key:   e.key,
+          mod:   e.metaKey || e.ctrlKey,
+          shift: e.shiftKey || undefined,
+          alt:   e.altKey || undefined,
+        });
+        setRecordingAction(null);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
     };
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [recordingAction, saveBinding]);
+  }, [isOpen, recordingAction, saveBinding, onClose]);
 
   // Cancel recording when switching tabs or closing
   useEffect(() => { setRecordingAction(null); }, [activeTab, isOpen]);

@@ -189,6 +189,7 @@ export default function App() {
       else if (matchesBinding(e, kb.zoomIn) || (e.key === "+" && (e.metaKey || e.ctrlKey))) { e.preventDefault(); zoomIn(); }
       else if (matchesBinding(e, kb.zoomOut)) { e.preventDefault(); zoomOut(); }
       else if (matchesBinding(e, kb.zoomReset)) { e.preventDefault(); zoomReset(); }
+      else if (e.key === "q" && (e.metaKey || e.ctrlKey) && "__TAURI_INTERNALS__" in window) { e.preventDefault(); getCurrentWindow().close(); }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);

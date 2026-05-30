@@ -2,13 +2,19 @@
 
 All notable changes to OggyBridge are documented here.
 
-## [Unreleased]
+## [0.2.0] - 2026-05-30
 
 ### Added
+- Resizable panel layouts and layout persistence
+- Fully featured workspace file tree explorer with custom file icons
+- Drag-and-drop interface support for organizing terminal and editor panes
+- Integrated CodeMirror editor workspace for editing files directly in-app
+- Stable pane identities, system tray menus, and customized exit-confirmation logic
 - i18n support for the UI
 - Configurable global keybindings with persistent application state
 
 ### Changed
+- Refactored native Rust backend into modular, focused components
 - CSS files migrated to global styles directory
 
 ### Other
